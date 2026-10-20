@@ -29,7 +29,9 @@ MY PHYSICAL MUSIC LIBRARY — come pubblicarla e installarla
     campo "Edizione Discogs" e premi "Arricchisci da Discogs" (c'è anche "Cerca l'edizione su Discogs").
   - Nella scheda di una persona: "Scarica la discografia" mostra prima "⭐ I più famosi" (in ordine
     di popolarità, raccolte e live esclusi; per produttori e ingegneri i loro lavori più noti, con il ruolo), poi la discografia completa (✓ quelli che hai,
-    "+ Wishlist" per quelli che ti mancano) e tutto ciò che ha prodotto, masterizzato, missato.
+    "+ Wishlist" per quelli che ti mancano) e, per ogni ruolo, gli album che ha prodotto, masterizzato,
+    missato (in ordine cronologico), poi singoli e promo, poi i crediti sui singoli brani
+    (utile per i turnisti, accreditati quasi sempre brano per brano).
 
 FOTO, STORIE E JUKEBOX
   - Nella scheda di una persona: foto, date, membri, strumenti, etichette, premi e biografia
