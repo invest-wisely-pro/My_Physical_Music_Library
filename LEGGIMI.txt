@@ -1,0 +1,66 @@
+MY PHYSICAL MUSIC LIBRARY — come pubblicarla e installarla
+==========================================================
+
+1. PUBBLICALA SU GITHUB PAGES (gratis, una volta sola)
+  a. Su github.com crea un NUOVO repository pubblico, separato da quello dei film
+     (nome neutro, es. "dischi").
+  b. "Add file" → "Upload files" → trascina TUTTI i file di questo pacchetto
+     (index.html, sw.js, manifest.webmanifest, le cartelle icons e tools) → "Commit changes".
+  c. Settings → Pages → Branch: main, cartella / (root) → Save.
+  d. Dopo 1-2 minuti l'app è su: https://TUONOME.github.io/dischi/
+
+2. INSTALLALA
+  - Android (Chrome): apri l'indirizzo → menu ⋮ → "Installa app".
+  - iPhone (Safari): apri l'indirizzo → Condividi → "Aggiungi alla schermata Home".
+
+3. COME SI USA
+  - "＋ Aggiungi": scrivi titolo e artista, oppure il codice a barre, e premi
+    "Trova l'edizione su MusicBrainz". Scegli la TUA stampa (paese, etichetta,
+    numero di catalogo, formato): arrivano tracce, crediti, copertina.
+  - 📷 Scansiona: inquadra il codice a barre sul retro (Chrome su Android).
+    Su iPhone scrivi il codice a mano: la ricerca è identica.
+  - Persone: chi compare nei tuoi dischi (produttori, mastering, musicisti...).
+    Tocca un nome per vedere in quali tuoi dischi c'è.
+  - Lo stato di conservazione segue lo standard Goldmine (M, NM, VG+, VG...).
+
+  - Discogs: se l'edizione scelta è collegata a Discogs, l'app legge da sola matrice/runout,
+    colore, grammatura, ristampa, quanti lo possiedono o lo cercano e il prezzo più basso in
+    vendita. Se il collegamento manca, incolla il link o il numero dell'edizione Discogs nel
+    campo "Edizione Discogs" e premi "Arricchisci da Discogs" (c'è anche "Cerca l'edizione su Discogs").
+  - Nella scheda di una persona: "Scarica la discografia" mostra i suoi album (✓ quelli che hai,
+    "+ Wishlist" per quelli che ti mancano) e tutto ciò che ha prodotto, masterizzato, missato.
+
+FOTO, STORIE E JUKEBOX
+  - Nella scheda di una persona: foto, date, membri, strumenti, etichette, premi e biografia
+    (Wikidata e Wikipedia, salvati sul dispositivo per 90 giorni).
+  - Nella scheda di un disco: "📖 Leggi su Wikipedia" per la storia dell'album.
+  - 🎰 Jukebox, "Cosa ascolto stasera?": sceglie un disco della tua collezione (filtri per genere,
+    decennio, formato), preferendo quelli che non ascolti da tempo. "▶ Lo ascolto!" segna l'ascolto.
+
+ASCOLTO IN STREAMING
+  - "▶ Ascolta su Spotify" nella scheda del disco, nelle discografie e nel jukebox: link diretto
+    all'album quando MusicBrainz lo conosce, altrimenti la ricerca di artista e titolo.
+  - Il servizio si cambia in ⋯ → "Servizio di ascolto" (Spotify, Apple Music, YouTube Music, Deezer, Tidal).
+
+INDICE OFFLINE (aggiornato ogni mese da GitHub)
+  - Contiene gli ~80.000 album piu diffusi di MusicBrainz: cercando, compaiono subito con ⚡,
+    anche senza rete. Scegliendo un album, l'app mostra solo le stampe di quell'album.
+  - Attivalo una volta: nell'app ⋯ → "🔄 Aggiorna indice" → "Prima volta": 4 passaggi con i
+    link gia pronti (script, automazione, permessi, primo aggiornamento). Dura 10-30 minuti.
+  - Poi si aggiorna da solo il 5 di ogni mese.
+  - IMPORTANTE: ogni volta che carichi un nuovo index.html, rilancia l'aggiornamento
+    (Actions → "Aggiorna indice musica" → "Run workflow"): il file del pacchetto non contiene l'indice.
+
+4. I TUOI DATI
+  - Restano sul tuo dispositivo. Fai un backup ogni tanto: ⋯ → "Scarica un backup"
+    oppure "Condividi backup" per mandarlo a un altro dispositivo.
+  - Su iPhone l'app installata ha una memoria separata da Safari: dentro l'app
+    usa "Ripristina un backup".
+  - Non caricare MAI il file di backup su GitHub.
+
+BUONO A SAPERSI
+  - Dati: MusicBrainz (CC0), Discogs (lettura dell'edizione, senza chiave) e copertine dal
+    Cover Art Archive. Gratis, senza chiavi. Discogs accetta 25 richieste al minuto: l'app le mette in fila.
+    MusicBrainz accetta una richiesta al secondo: l'app le mette in fila da sola.
+  - Le copertine già viste restano disponibili anche offline.
+  - L'app chiede ai motori di ricerca di non indicizzarla.
