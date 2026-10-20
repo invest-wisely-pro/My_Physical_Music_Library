@@ -28,7 +28,7 @@ MY PHYSICAL MUSIC LIBRARY — come pubblicarla e installarla
     vendita. Se il collegamento manca, incolla il link o il numero dell'edizione Discogs nel
     campo "Edizione Discogs" e premi "Arricchisci da Discogs" (c'è anche "Cerca l'edizione su Discogs").
   - Nella scheda di una persona: "Scarica la discografia" mostra prima "⭐ I più famosi" (in ordine
-    di popolarità, raccolte e live esclusi), poi la discografia completa (✓ quelli che hai,
+    di popolarità, raccolte e live esclusi; per produttori e ingegneri i loro lavori più noti, con il ruolo), poi la discografia completa (✓ quelli che hai,
     "+ Wishlist" per quelli che ti mancano) e tutto ciò che ha prodotto, masterizzato, missato.
 
 FOTO, STORIE E JUKEBOX

@@ -187,6 +187,10 @@ main{max-width:1200px; margin:0 auto; padding:18px 18px 40px;}
 .toast{position:fixed; left:50%; bottom:calc(92px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%) translateY(20px); opacity:0; z-index:90; max-width:min(92vw, 520px); background:var(--paper); color:var(--walnut); padding:11px 18px; border-radius:22px; font-weight:600; font-size:14px; pointer-events:none; transition:opacity .2s, transform .2s;}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 .hidden{display:none !important;}
+.info{width:26px; height:26px; border-radius:50%; border:1px solid var(--line); background:var(--wood2); cursor:pointer; font-size:13px; line-height:1; color:var(--blue2); flex:0 0 auto;}
+.info[aria-expanded="true"]{border-color:var(--blue2);}
+#obiInfo{margin:6px 0 0; max-width:62ch;}
+.ditem em.rtag{color:var(--blue2);}
 .rank{font-style:normal; display:inline-block; min-width:20px; margin-right:6px; font-family:var(--display); font-weight:800; color:var(--mustard);}
 .ghelp{margin-top:10px;} .ghelp summary{cursor:pointer; font-size:13.5px; font-weight:600; color:var(--blue2);}
 .gtab{width:100%; border-collapse:collapse; margin-top:10px; font-size:13px;}
@@ -338,9 +342,10 @@ a.dbtn{text-decoration:none; display:inline-flex; align-items:center;}
       <div class="row" style="margin-top:6px">
         <label class="chk"><input type="checkbox" id="fPrima"><span data-i18n="fFirstPress">Prima stampa</span></label>
         <label class="chk"><input type="checkbox" id="fApribile"><span data-i18n="fGatefold">Copertina apribile</span></label>
-        <label class="chk"><input type="checkbox" id="fObi"><span>OBI</span></label>
+        <span class="chk"><label class="chk" style="height:auto"><input type="checkbox" id="fObi"><span data-i18n="fObi">OBI (fascetta giapponese)</span></label><button type="button" class="info" id="obiInfoBtn" aria-expanded="false" data-i18n-title="obiWhat" title="Che cos'è l'OBI?">ⓘ</button></span>
         <label class="chk"><input type="checkbox" id="fInserti"><span data-i18n="fInserts">Inserti / poster</span></label>
       </div>
+      <p class="note hidden" id="obiInfo" data-i18n="obiInfo">L'OBI è la fascetta di carta avvolta intorno alla copertina delle stampe giapponesi, vinili e CD, con titolo, prezzo e numero di catalogo in giapponese. Spesso veniva buttata: una copia con l'OBI integra vale di più.</p>
     </div>
     <div class="sec"><h3 data-i18n="secCondition">Stato di conservazione <small>Goldmine</small></h3>
       <div class="row">
@@ -444,7 +449,7 @@ a.dbtn{text-decoration:none; display:inline-flex; align-items:center;}
    max 1 richiesta al secondo) e Cover Art Archive (copertine).
    Tutto ciò che scarichi resta salvato sul dispositivo (IndexedDB).
    ===================================================================== */
-const APP_VERSION = 'music-2026-10-8';
+const APP_VERSION = 'music-2026-10-9';
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r=>setTimeout(r, ms));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
@@ -491,7 +496,8 @@ const I18N = {
     jbTitle:'Cosa ascolto stasera?', jbAllGenres:'Ogni genere', jbPlay:'▶ Lo ascolto!', jbAgain:'🎰 Un altro', jbOpen:'Apri la scheda', jbEmpty:'Nessun disco con questi filtri (i dischi prestati sono esclusi).',
     jbPlaying:'Buon ascolto: {t}', jbNever:'Mai ascoltato col jukebox', plays:'Ascoltato {n} volte, l\'ultima il {d}', plays1:'Ascoltato una volta, il {d}', stPlays:'I più ascoltati col jukebox',
     listenOn:'Ascolta su {s}', listenExact:'Link diretto all\'album', listenSearch:'Ricerca di artista e titolo', streamLabel:'Servizio di ascolto', streamSet:'Ascolto con {s}',
-    gradeHelp:'Cosa significano le sigle?',
+    gradeHelp:'Cosa significano le sigle?', fObi:'OBI (fascetta giapponese)', obiWhat:'Che cos\'è l\'OBI?',
+    obiInfo:'L\'OBI è la fascetta di carta avvolta intorno alla copertina delle stampe giapponesi, vinili e CD, con titolo, prezzo e numero di catalogo in giapponese. Spesso veniva buttata: una copia con l\'OBI integra vale di più.',
     tIdx:'🔄 Aggiorna indice', idxTitle:'Indice offline', idxNone:'L\'indice offline non c\'è ancora: arriva con il primo aggiornamento su GitHub.', idxDate:'Indice offline del {d}: {n} album.',
     idxHow:'L\'aggiornamento lo fa GitHub ogni mese (il 5), dall\'archivio ufficiale di MusicBrainz. Per farlo subito: Actions → "Aggiorna indice musica" → "Run workflow", poi ricarica l\'app.',
     idxOpen:'Apri GitHub Actions ↗', idxReload:'🔄 Ricarica l\'app', idxPc:'Sul PC, con Python: python tools/aggiorna_indice_musica.py index.html', idxWarn:'Ogni volta che carichi un nuovo index.html su GitHub, rilancia l\'aggiornamento: il file del pacchetto non contiene l\'indice.',
@@ -537,7 +543,8 @@ const I18N = {
     jbTitle:'What shall I play tonight?', jbAllGenres:'Any genre', jbPlay:'▶ Playing it!', jbAgain:'🎰 Another one', jbOpen:'Open the record', jbEmpty:'No records with these filters (lent records are excluded).',
     jbPlaying:'Enjoy: {t}', jbNever:'Never played with the jukebox', plays:'Played {n} times, last on {d}', plays1:'Played once, on {d}', stPlays:'Most played with the jukebox',
     listenOn:'Listen on {s}', listenExact:'Direct link to the album', listenSearch:'Search for artist and title', streamLabel:'Listening service', streamSet:'Listening with {s}',
-    gradeHelp:'What do the grades mean?',
+    gradeHelp:'What do the grades mean?', fObi:'OBI (Japanese sash)', obiWhat:'What is an OBI?',
+    obiInfo:'The OBI is the paper strip wrapped around the sleeve of Japanese pressings, vinyl and CD, with title, price and catalogue number in Japanese. It was often thrown away: a copy with its OBI intact is worth more.',
     tIdx:'🔄 Update index', idxTitle:'Offline index', idxNone:'The offline index isn\'t here yet: it arrives with the first update on GitHub.', idxDate:'Offline index from {d}: {n} albums.',
     idxHow:'GitHub updates it every month (on the 5th) from the official MusicBrainz archive. To do it now: Actions → "Aggiorna indice musica" → "Run workflow", then reload the app.',
     idxOpen:'Open GitHub Actions ↗', idxReload:'🔄 Reload the app', idxPc:'On a PC, with Python: python tools/aggiorna_indice_musica.py index.html', idxWarn:'Every time you upload a new index.html to GitHub, run the update again: the file in the package doesn\'t contain the index.',
@@ -946,6 +953,7 @@ $('delBtn').addEventListener('click', async ()=>{
   albums = albums.filter(x=>x.id !== cur.id); await save(); closeOv('albumOv'); renderAll(); toast(t('deleted'));
 });
 $('addBtn').addEventListener('click', ()=>openAlbum(null));
+$('obiInfoBtn').addEventListener('click', ()=>{ const n = $('obiInfo'), open = n.classList.toggle('hidden') === false; $('obiInfoBtn').setAttribute('aria-expanded', open ? 'true' : 'false'); });
 
 /* ---------- Persone: chi compare nei tuoi dischi ---------- */
 function peopleIndex(){
@@ -1239,6 +1247,13 @@ $('dgBtn').addEventListener('click', ()=>enrichDiscogs(false));
 const DISCO_TTL = 30 * 864e5;
 let _mbiById = null;
 function mbiRank(id){ if(!MBI) return -1; if(!_mbiById) _mbiById = new Map(MBI.map(e=>[e.id, e.r])); const r = _mbiById.get(id); return r === undefined ? -1 : r; }
+let _mbiByTitle = null;
+function mbiMatch(it){
+  if(!MBI) return null;
+  if(!_mbiByTitle){ _mbiByTitle = new Map(); MBI.forEach(e=>{ const l = _mbiByTitle.get(e.k); if(l) l.push(e); else _mbiByTitle.set(e.k, [e]); }); }
+  const l = _mbiByTitle.get(norm(it.t)); if(!l) return null;
+  return l.find(e=>it.y && e.y === it.y) || l.reduce((a, b)=>a.r <= b.r ? a : b);
+}
 function popScore(it){ const r = mbiRank(it.id); return r >= 0 ? 1e7 - r : (it.rv || 0) * 10 + (parseFloat(it.rval) || 0); }
 const FAMOUS_N = 6, FAMOUS_MIN = 5;
 const notCompLive = st => !(st || []).some(x=>/compilation|live/i.test(x));
@@ -1277,11 +1292,19 @@ function renderDiscography(name){
   const life = [d.begin && d.begin.slice(0, 4), d.end && d.end.slice(0, 4)].filter(Boolean).join('–');
   let h = `<p class="sub" style="margin-bottom:10px">${esc([d.type, d.country, life, d.dis].filter(Boolean).join(', '))}</p>`;
   if(d.links.length) h += `<div class="links" style="margin:0 0 14px">${d.links.slice(0, 5).map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(/wikipedia/.test(l.type) ? 'Wikipedia' : /wikidata/.test(l.type) ? 'Wikidata' : /discogs/.test(l.type) ? 'Discogs' : /bandcamp/.test(l.type) ? 'Bandcamp' : t('discoSite'))}</a>`).join('')}</div>`;
-  const item = (it, canWish, rank) => { const own = ownedMatch(it, canWish ? name : '');
-    return `<div class="ditem${own ? ' own' : ''}"><span>${rank ? `<i class="rank">${rank}</i>` : ''}<b>${esc(it.t)}</b>${it.y ? ` <em>${esc(it.y)}</em>` : ''}${it.st && it.st.length ? ` <em>${esc(it.st.join(', '))}</em>` : ''}</span><span class="dacts">${listenHTML(own || { titolo: it.t, artista: canWish ? name : '' }, 'dbtn')}${own ? `<button type="button" class="dbtn" data-open="${esc(own.id)}">✓ ${t('discoOwned')}</button>` : canWish ? `<button type="button" class="dbtn" data-wish="${esc(it.id)}" data-t="${esc(it.t)}" data-y="${esc(it.y)}">＋ ${t('listWish')}</button>` : ''}</span></div>`; };
+  const item = (it, canWish, rank, roleTag, who) => { const art = who || (canWish ? name : ''); const own = ownedMatch(it, art);
+    return `<div class="ditem${own ? ' own' : ''}"><span>${rank ? `<i class="rank">${rank}</i>` : ''}<b>${esc(it.t)}</b>${it.y ? ` <em>${esc(it.y)}</em>` : ''}${roleTag ? ` <em class="rtag">${esc(roleTag)}</em>` : ''}${who && who !== name ? ` <em>${esc(who)}</em>` : ''}${it.st && it.st.length ? ` <em>${esc(it.st.join(', '))}</em>` : ''}</span><span class="dacts">${listenHTML(own || { titolo: it.t, artista: art }, 'dbtn')}${own ? `<button type="button" class="dbtn" data-open="${esc(own.id)}">✓ ${t('discoOwned')}</button>` : canWish ? `<button type="button" class="dbtn" data-wish="${esc(it.id)}" data-t="${esc(it.t)}" data-y="${esc(it.y)}" data-a="${esc(art)}">＋ ${t('listWish')}</button>` : ''}</span></div>`; };
   const rgs = d.rgs.slice().sort((a, b)=>(a.y || '9999').localeCompare(b.y || '9999'));
-  const famous = rgs.length >= FAMOUS_MIN ? rgs.filter(x=>popScore(x) > 0 && notCompLive(x.st)).sort((a, b)=>popScore(b) - popScore(a)).slice(0, FAMOUS_N) : [];
-  if(famous.length >= 3) h += `<h3 class="dh">⭐ ${t('famousTitle')} <small>${t('famousSub')}</small></h3>` + famous.map((x, i)=>item(x, true, i + 1)).join('');
+  // ⭐ I più famosi: album propri (indice o voti) e lavori per altri riconosciuti nell'indice, per ogni figura
+  const pool = new Map();
+  const put = (key, o) => { const old = pool.get(key); if(!old || o.score > old.score) pool.set(key, o); };
+  rgs.filter(x=>notCompLive(x.st)).forEach(x=>{ const sc = popScore(x); if(sc > 0) put(norm(x.t), { it: x, score: sc, own: true }); });
+  d.rels.forEach(x=>{ const e = mbiMatch(x); if(!e || /[LC]/.test(e.ty.slice(1))) return;
+    put(norm(e.t), { it: { id: e.id, t: e.t, y: e.y || x.y }, score: 1e7 - e.r, role: x.r, who: e.a }); });
+  const works = new Set([...rgs.map(x=>norm(x.t)), ...d.rels.map(x=>norm(x.t))]).size;
+  const famous = works >= FAMOUS_MIN ? [...pool.values()].sort((a, b)=>b.score - a.score).slice(0, FAMOUS_N) : [];
+  if(famous.length >= 3) h += `<h3 class="dh">⭐ ${t('famousTitle')} <small>${t('famousSub')}</small></h3>`
+    + famous.map((f, i)=>f.own ? item(f.it, true, i + 1) : item(f.it, true, i + 1, t('role_' + f.role), f.who)).join('');
   if(rgs.length){ const own = rgs.filter(x=>ownedMatch(x, name)).length; h += `<h3 class="dh">${t('discoFull')} <small>${esc(t('discoOwnedOf', { n: own, t: rgs.length }))}</small></h3>` + rgs.map(x=>item(x, true)).join(''); }
   ROLES.filter(r=>r !== 'artist' && d.rels.some(x=>x.r === r)).forEach(r=>{
     const list = d.rels.filter(x=>x.r === r).sort((a, b)=>(b.y || '').localeCompare(a.y || ''));
@@ -1297,7 +1320,7 @@ $('pDisco').addEventListener('click', async e=>{
   const w = e.target.closest('[data-wish]');
   if(w){
     if(albums.some(a=>a.rgid === w.dataset.wish)){ toast(t('discoAlready')); return; }
-    albums.push({ id: uid(), titolo: w.dataset.t, artista: $('pTitle').textContent, anno: w.dataset.y, rgid: w.dataset.wish, lista: 'wishlist', aggiunto: Date.now(),
+    albums.push({ id: uid(), titolo: w.dataset.t, artista: w.dataset.a || $('pTitle').textContent, anno: w.dataset.y, rgid: w.dataset.wish, lista: 'wishlist', aggiunto: Date.now(),
       copertina: `https://coverartarchive.org/release-group/${w.dataset.wish}/front-500` });
     await save(); renderGrid(); w.outerHTML = `<span class="dbtn on">✓ ${t('listWish')}</span>`; toast(t('discoWished', { t: w.dataset.t }));
   }
