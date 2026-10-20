@@ -51,6 +51,15 @@ INDICE OFFLINE (aggiornato ogni mese da GitHub)
   - IMPORTANTE: ogni volta che carichi un nuovo index.html, rilancia l'aggiornamento
     (Actions → "Aggiorna indice musica" → "Run workflow"): il file del pacchetto non contiene l'indice.
 
+SE L'AGGIORNAMENTO FALLISCE (X rossa su GitHub)
+  - Actions → tocca l'esecuzione con la X rossa → tocca "aggiorna" → apri il passaggio con la X:
+    lo script scrive in italiano cosa sta facendo e dove si e fermato. Mandane uno screenshot.
+  - Se il passaggio fallito e "Pubblica se e cambiato": mancano i permessi
+    (Settings → Actions → General → Workflow permissions → "Read and write permissions" → Save).
+  - Dopo aver aggiornato lo script (in app: ⋯ → Aggiorna indice → Prima volta, passaggio 1;
+    su GitHub apri tools/aggiorna_indice_musica.py, matita ✏️, incolla, "Commit changes"),
+    rilancia "Run workflow".
+
 4. I TUOI DATI
   - Restano sul tuo dispositivo. Fai un backup ogni tanto: ⋯ → "Scarica un backup"
     oppure "Condividi backup" per mandarlo a un altro dispositivo.
