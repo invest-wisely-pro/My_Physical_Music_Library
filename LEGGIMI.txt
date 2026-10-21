@@ -36,7 +36,8 @@ MY PHYSICAL MUSIC LIBRARY — come pubblicarla e installarla
 FOTO, STORIE E JUKEBOX
   - Nella scheda di una persona: foto, date, membri, strumenti, etichette, premi e biografia
     (Wikidata e Wikipedia, salvati sul dispositivo per 90 giorni).
-  - Nella scheda di un disco: "📖 Leggi su Wikipedia" per la storia dell'album.
+  - Nella scheda di un disco: "✨ Curiosità" (studio di registrazione, premi, liste celebri, durata,
+    album precedente e successivo con ✓ o "+ Wishlist") e "📖 Leggi su Wikipedia" per la storia.
   - 🎰 Jukebox, "Cosa ascolto stasera?": sceglie un disco della tua collezione (filtri per genere,
     decennio, formato), preferendo quelli che non ascolti da tempo. "▶ Lo ascolto!" segna l'ascolto.
 
