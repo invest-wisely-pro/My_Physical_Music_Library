@@ -55,6 +55,13 @@ INDICE OFFLINE (aggiornato ogni mese da GitHub)
   - IMPORTANTE: ogni volta che carichi un nuovo index.html, rilancia l'aggiornamento
     (Actions → "Aggiorna indice musica" → "Run workflow"): il file del pacchetto non contiene l'indice.
 
+ALTRE EDIZIONI E VERIFICA SERVIZI
+  - Nella scheda di un disco: "💿 Altre edizioni di questo album" mostra tutte le stampe (prima uscita,
+    paesi, etichette, vinili colorati, giapponesi…), con ✓ su quelle che hai, "+ Wishlist" e "È la mia"
+    se hai scelto l'edizione sbagliata.
+  - ⋯ → "🩺 Verifica servizi": prova davvero, dal tuo dispositivo, MusicBrainz, Discogs, Wikidata,
+    Wikipedia, copertine, indice e archivio. Se qualcosa non va, "📋 Copia il rapporto" e mandamelo.
+
 SE L'AGGIORNAMENTO FALLISCE (X rossa su GitHub)
   - Actions → tocca l'esecuzione con la X rossa → tocca "aggiorna" → apri il passaggio con la X:
     lo script scrive in italiano cosa sta facendo e dove si e fermato. Mandane uno screenshot.
