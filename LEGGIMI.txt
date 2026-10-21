@@ -55,12 +55,24 @@ INDICE OFFLINE (aggiornato ogni mese da GitHub)
   - IMPORTANTE: ogni volta che carichi un nuovo index.html, rilancia l'aggiornamento
     (Actions → "Aggiorna indice musica" → "Run workflow"): il file del pacchetto non contiene l'indice.
 
+COPERTINE E BOOKLET
+  - Nella scheda di un disco: "🖼️ Copertine e booklet" mostra le immagini della TUA stampa dal Cover Art
+    Archive (fronte, retro, pagine del booklet, etichetta del disco, OBI, busta interna…). Tocca per
+    vederle a schermo intero; "Usa come copertina" la mostra sullo scaffale. Se mancano, puoi
+    aggiungerle tu su MusicBrainz.
+
 ALTRE EDIZIONI E VERIFICA SERVIZI
   - Nella scheda di un disco: "💿 Altre edizioni di questo album" mostra tutte le stampe (prima uscita,
     paesi, etichette, vinili colorati, giapponesi…), con ✓ su quelle che hai, "+ Wishlist" e "È la mia"
     se hai scelto l'edizione sbagliata.
   - ⋯ → "🩺 Verifica servizi": prova davvero, dal tuo dispositivo, MusicBrainz, Discogs, Wikidata,
     Wikipedia, copertine, indice e archivio. Se qualcosa non va, "📋 Copia il rapporto" e mandamelo.
+
+COPIE DI SICUREZZA E "ANNULLA"
+  - Dopo aver eliminato un disco compare per 8 secondi "Annulla", che lo rimette dov'era.
+  - L'app conserva da sola le ultime 5 versioni della collezione (una al giorno e una prima di ogni
+    ripristino o importazione): ⋯ → "🛟 Copie di sicurezza" per vederle e ripristinarle.
+    Non sostituiscono il backup: quello resta l'unico modo per passare i dati a un altro dispositivo.
 
 SE L'AGGIORNAMENTO FALLISCE (X rossa su GitHub)
   - Actions → tocca l'esecuzione con la X rossa → tocca "aggiorna" → apri il passaggio con la X:
