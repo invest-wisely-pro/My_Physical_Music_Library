@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+"""
 Aggiorna l'indice offline di My Physical Music Library.
 
 Scarica l'archivio JSON ufficiale dei "release group" (gli album) di MusicBrainz
@@ -6,9 +8,11 @@ Scarica l'archivio JSON ufficiale dei "release group" (gli album) di MusicBrainz
 HTML dell'app (di solito index.html).
 
 Formato di ogni riga (dentro il blocco compresso):
-  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi|voto|voti|data
+  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi|voto|voti|data|wiki|critica|premi
   voto: media degli utenti di MusicBrainz da 0 a 100 (vuoto se nessuno ha votato); voti: quanti; data: prima uscita (AAAA-MM-GG).
-  Le ultime tre colonne servono all'Atlante della Musica: l'app dei dischi legge solo le prime sei.
+  wiki: 1 se il disco ha una voce su Wikipedia o Wikidata (difficile da falsificare, a differenza dei voti).
+  critica: in quante classifiche e opere di riferimento compare secondo Wikidata (P1343); premi: quanti ne ha vinti (P166).
+  Le ultime quattro colonne servono all'Atlante della Musica: l'app dei dischi legge solo le prime sei.
   tipo: A = album, E = EP, piu L (live) C (compilation) S (colonna sonora) R (remix)
 
 Uso:
@@ -17,7 +21,7 @@ Uso:
   Opzioni: --top N (album da tenere, predefinito 80000), --min N (minimo per inserirlo, predefinito 20000)
 Solo libreria standard di Python 3.8+.
 """
-import sys, os, re, io, json, gzip, time, base64, heapq, tarfile, datetime, urllib.request, urllib.error
+import sys, os, re, io, json, gzip, time, base64, heapq, tarfile, datetime, urllib.request, urllib.error, urllib.parse
 
 BASE = 'https://data.metabrainz.org/pub/musicbrainz/data/json-dumps/'
 UA = {'User-Agent': 'MyPhysicalMusicLibrary-index-updater/1.0 (personal use)'}
@@ -122,8 +126,9 @@ def build(src, top):
         typ = ('A' if pt == 'Album' else 'E') + ''.join(SEC[x] for x in sec if x in SEC)
         rt = rg.get('rating') or {}; rv = rt.get('value'); vc = int(rt.get('votes-count') or rt.get('votes_count') or 0)
         frd = str(rg.get('first-release-date') or '')
+        wk = any(str(r.get('type') or '').lower() in ('wikidata', 'wikipedia') for r in (rg.get('relations') or []))
         row = '|'.join([str(rg.get('id', '')).replace('-', ''), clean(rg.get('title')), clean(ac), frd[:4], typ, clean(', '.join(g.get('name', '') for g in gen[:2])),
-                        str(round(float(rv) * 20)) if rv not in (None, '') and vc else '', str(vc) if vc else '', frd if len(frd) == 10 else ''])
+                        str(round(float(rv) * 20)) if rv not in (None, '') and vc else '', str(vc) if vc else '', frd if len(frd) == 10 else '', '1' if wk else ''])
         if len(row) < 40: continue
         item = (sc, n, row)
         if len(heap) < top: heapq.heappush(heap, item)
@@ -133,6 +138,53 @@ def build(src, top):
     if heap: log(f'Punteggio minimo tenuto: {min(h[0] for h in heap)} · massimo: {max(h[0] for h in heap)}')
     rows = [r for _, _, r in sorted(heap, key=lambda x: (-x[0], x[1]))]   # dal piu diffuso
     return '\n'.join(rows) + '\n', len(rows)
+
+WD_ENDPOINTS = ['https://qlever.cs.uni-freiburg.de/api/wikidata', 'https://query.wikidata.org/sparql']
+WD_Q = {
+    'cl': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?s) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P1343 ?s . } GROUP BY ?mb',
+    'aw': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?x) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P166 ?x . } GROUP BY ?mb',
+}
+def wd_counts(key, local=None):
+    """Da Wikidata: per ogni disco (codice MusicBrainz), quante classifiche della critica o quanti premi."""
+    if local:
+        p = os.path.join(local, f'q-{key}.json')
+        if not os.path.exists(p): raise RuntimeError('risposta di prova mancante')
+        j = json.load(open(p, encoding='utf-8'))
+    else:
+        j, last = None, ''
+        for url in WD_ENDPOINTS:
+            for attempt in range(2):
+                try:
+                    req = urllib.request.Request(url + '?' + urllib.parse.urlencode({'query': WD_Q[key]}), headers=dict(UA, Accept='application/sparql-results+json'))
+                    with urllib.request.urlopen(req, timeout=240) as r: j = json.loads(r.read().decode('utf-8'))
+                    break
+                except Exception as e:
+                    last = f'{url.split("/")[2]}: {str(e)[:100]}'; time.sleep(8)
+            if j: break
+        if not j: raise RuntimeError(last or 'nessuna risposta')
+    out = {}
+    for b in (j.get('results') or {}).get('bindings') or []:
+        mb = str((b.get('mb') or {}).get('value') or '').replace('-', '').lower()
+        try: n = int(float((b.get('n') or {}).get('value') or 0))
+        except ValueError: continue
+        if len(mb) == 32 and n > 0: out[mb] = n
+    return out
+
+def add_wikidata(text, local=None):
+    """Aggiunge due colonne: classifiche della critica e premi. Se Wikidata non risponde, restano vuote."""
+    extra = {}
+    for key, label in (('cl', 'classifiche della critica'), ('aw', 'premi')):
+        try:
+            extra[key] = wd_counts(key, local); log(f'Wikidata, {label}: {len(extra[key]):,} dischi')
+        except Exception as e:
+            extra[key] = {}; log(f'Wikidata, {label}: non disponibile ({str(e)[:110]}); l\'indice resta valido, si riprova il mese prossimo')
+    rows = []
+    for l in text.split('\n'):
+        if not l: continue
+        p = l.split('|'); rows.append('|'.join(p + [str(extra['cl'].get(p[0], '')), str(extra['aw'].get(p[0], ''))]))
+    hit = sum(1 for r in rows if r.split('|')[10])
+    log(f'Dischi dell\'indice in almeno una classifica della critica: {hit:,}')
+    return '\n'.join(rows) + '\n'
 
 def embed(html_path, text, built, dump):
     buf = io.BytesIO()
@@ -159,6 +211,7 @@ def main():
         log(f'Scarico e leggo i release group (archivio {dump}' + (f', {int(size) / 1048576:.0f} MB' if size else '') + ')…')
         text, n = build(resp, top)
     if n < minimum: raise SystemExit(f'Indice sospetto ({n} album): non lo inserisco')
+    text = add_wikidata(text, arg('--wdlocal'))
     embed(html, text, built, dump)
 
 if __name__ == '__main__': main()
