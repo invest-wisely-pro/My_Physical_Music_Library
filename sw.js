@@ -1,7 +1,7 @@
 /* My Physical Music Library — service worker
    App: rete prima (sempre l'ultima versione), copia salvata se offline.
    Copertine (Cover Art Archive): conservate dopo la prima visione, così lo scaffale resta completo offline. */
-const VERSION = 'mpmlm-2026-10-18';
+const VERSION = 'mpmlm-2026-11-06';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== 'covers').map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -13,6 +13,7 @@ self.addEventListener('fetch', e => {
     return;
   }
   if(url.origin !== location.origin) return;   // MusicBrainz, caratteri: sempre dalla rete
+  if(url.pathname.includes('/atlante/')) return;   // l'Atlante della Musica ha il suo service worker: le sue pagine non vanno salvate come la Discoteca
   if(req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html')){
     e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(VERSION).then(c => c.put('index.html', cp)); return r; }).catch(() => caches.match('index.html')));
     return;

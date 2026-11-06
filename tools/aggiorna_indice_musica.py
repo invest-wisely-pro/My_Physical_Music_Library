@@ -8,7 +8,9 @@ Scarica l'archivio JSON ufficiale dei "release group" (gli album) di MusicBrainz
 HTML dell'app (di solito index.html).
 
 Formato di ogni riga (dentro il blocco compresso):
-  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi
+  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi|voto|voti|data
+  voto: media degli utenti di MusicBrainz da 0 a 100 (vuoto se nessuno ha votato); voti: quanti; data: prima uscita (AAAA-MM-GG).
+  Le ultime tre colonne servono all'Atlante della Musica: l'app dei dischi legge solo le prime sei.
   tipo: A = album, E = EP, piu L (live) C (compilation) S (colonna sonora) R (remix)
 
 Uso:
@@ -120,7 +122,10 @@ def build(src, top):
         gen = sorted((rg.get('genres') or []), key=lambda g: -int(g.get('count') or 0))
         if not gen: gen = sorted((rg.get('tags') or []), key=lambda g: -int(g.get('count') or 0))
         typ = ('A' if pt == 'Album' else 'E') + ''.join(SEC[x] for x in sec if x in SEC)
-        row = '|'.join([str(rg.get('id', '')).replace('-', ''), clean(rg.get('title')), clean(ac), str(rg.get('first-release-date') or '')[:4], typ, clean(', '.join(g.get('name', '') for g in gen[:2]))])
+        rt = rg.get('rating') or {}; rv = rt.get('value'); vc = int(rt.get('votes-count') or rt.get('votes_count') or 0)
+        frd = str(rg.get('first-release-date') or '')
+        row = '|'.join([str(rg.get('id', '')).replace('-', ''), clean(rg.get('title')), clean(ac), frd[:4], typ, clean(', '.join(g.get('name', '') for g in gen[:2])),
+                        str(round(float(rv) * 20)) if rv not in (None, '') and vc else '', str(vc) if vc else '', frd if len(frd) == 10 else ''])
         if len(row) < 40: continue
         item = (sc, n, row)
         if len(heap) < top: heapq.heappush(heap, item)

@@ -96,3 +96,21 @@ BUONO A SAPERSI
     MusicBrainz accetta una richiesta al secondo: l'app le mette in fila da sola.
   - Le copertine già viste restano disponibili anche offline.
   - L'app chiede ai motori di ricerca di non indicizzarla.
+
+ATLANTE DELLA MUSICA (cartella atlante/)
+========================================
+Un atlante di 80.000 dischi costruito sull'indice di questa app: si apre all'indirizzo della Discoteca
+seguito da atlante/ (per esempio https://NOME.github.io/REPOSITORY/atlante/) e si installa come app
+dal browser del telefono ("Aggiungi a schermata Home" / "Installa").
+  - Esplora per decennio e genere, I più famosi, Novità, Capolavori, Gemme nascoste, Dal vivo,
+    Colonne sonore, Raccolte, EP, e i dischi della tua collezione.
+  - Pagina di ogni disco: copertina, link di ascolto (Spotify, YouTube Music, Apple Music), tracce
+    (MusicBrainz), storia (Wikipedia), etichetta, produzione, premi, disco precedente e successivo.
+  - Pagina di ogni artista: foto, biografia, discografia divisa per tipo.
+  - Le tue liste (ascoltati, da ascoltare, preferiti), il tuo voto da 1 a 10 e le classifiche, anche
+    importate da un elenco o da un CSV. Restano sul dispositivo: Strumenti -> Scarica le liste.
+  - La tua collezione viene solo letta, mai modificata.
+Capolavori, Gemme e date complete arrivano con il prossimo aggiornamento dell'indice (il 5 del mese,
+oppure Actions -> "Aggiorna indice musica" -> Run workflow): lo script ora salva anche i voti degli
+utenti di MusicBrainz. Fino ad allora l'Atlante funziona con la fama dei dischi.
+Il service worker della Discoteca ignora la cartella atlante/, che ha il suo.

@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlante della Musica</title>
+<meta name="theme-color" content="#101417">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:'Inter Atlante'; src:url('fonts/inter-var.woff2') format('woff2'); font-weight:100 900; font-display:swap;}   /* Inter, SIL Open Font License: fonts/OFL.txt */
+:root{
+  --ink:#101417; --s1:#161C20; --s2:#1D252A; --s3:#26313A; --line:#2B3740;
+  --paper:#ECE7DC; --paper2:#B8B3A8; --paper3:#857F74;
+  --acc:#4FD1A5; --acc2:#2E9C7A; --amber:#E9A23B; --amber2:#F5C26B;
+  --ui:-apple-system, BlinkMacSystemFont, 'Inter Atlante', 'Segoe UI', Roboto, Arial, sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0; background:var(--ink); color:var(--paper); font-family:var(--ui); -webkit-font-smoothing:antialiased; letter-spacing:-0.003em;}
+body{padding-bottom:env(safe-area-inset-bottom,0px);}
+a{color:inherit; text-decoration:none;}
+button{font:inherit; color:inherit;}
+.top{position:sticky; top:0; z-index:5; background:rgba(16,20,23,.9); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line); padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,4vw) 6px;}
+.brand{display:inline-flex; align-items:center; gap:10px;} .brand img{width:30px; height:30px; border-radius:8px;}
+.brand b{font-size:21px; font-weight:800; letter-spacing:-.025em;}
+#q{width:100%; height:42px; margin:10px 0 6px; border-radius:21px; border:1px solid var(--line); background:var(--s1); color:var(--paper); padding:0 16px; font:inherit; font-size:16px; outline:none;}
+#q:focus{border-color:var(--acc2);}
+.nav{display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; margin:0 -6px;} .nav::-webkit-scrollbar{display:none;}
+.nav a{padding:8px 13px; border-radius:18px; font-weight:600; color:var(--paper2); white-space:nowrap; font-size:15px;}
+.nav a.on{background:var(--s3); color:var(--paper);}
+main{position:relative; padding:14px max(16px,4vw) 70px; max-width:1280px; margin:0 auto;}
+h1.pg{font-size:31px; font-weight:800; letter-spacing:-.03em; margin:6px 0 6px; line-height:1.08;}
+h2.sec{display:flex; align-items:baseline; justify-content:space-between; gap:12px; font-size:21px; font-weight:700; letter-spacing:-.02em; margin:28px 0 12px;}
+h2.sec .cnt{color:var(--paper3); font-weight:600; font-size:15px; margin-right:auto; margin-left:8px;}
+.more{font-size:14px; font-weight:600; color:var(--acc); white-space:nowrap;}
+.lead{color:var(--paper2); margin:0 0 14px; line-height:1.55; max-width:760px;}
+.note{color:var(--paper3); font-size:13.5px; line-height:1.55;}
+.lbl{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--paper3); margin:18px 0 8px;}
+.lnk{color:var(--acc);}
+/* copertine */
+.strip{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(132px,152px); gap:14px; overflow-x:auto; padding-bottom:8px; scroll-snap-type:x proximity; scrollbar-width:thin;}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:16px 14px;}
+.card{display:block; min-width:0; scroll-snap-align:start;}
+.cv{position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; background:var(--tilebg,#26313A); box-shadow:0 6px 18px rgba(0,0,0,.35);}
+.cv img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+.cv .ph{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:flex-end; padding:10px; background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(0,0,0,.25));}
+.cv .ph span{font-weight:800; font-size:15px; line-height:1.15; letter-spacing:-.015em; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;}
+.cv .ph small{color:rgba(236,231,220,.75); font-size:12px; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cv img ~ .ph{display:none;}
+.cv .mk,.cv .own{position:absolute; top:6px; font-style:normal; font-size:12px; font-weight:800; padding:2px 7px; border-radius:9px; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
+.cv .mk{left:6px; background:rgba(16,20,23,.72); color:var(--amber2);} .cv .own{right:6px; background:rgba(16,20,23,.72); color:var(--acc);}
+.card b{display:block; font-size:14px; font-weight:650; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-.01em;}
+.card small{display:block; color:var(--paper3); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px;}
+/* righe */
+.rows{display:flex; flex-direction:column;}
+.fr{display:grid; grid-template-columns:56px minmax(0,1fr) auto; gap:12px; align-items:center; padding:9px 2px; border-bottom:1px solid var(--line);}
+.fr .cv{width:56px; border-radius:6px; box-shadow:none;} .fr .cv .ph,.fr .cv .mk,.fr .cv .own{display:none;}
+.fr b{font-weight:650; font-size:15.5px; letter-spacing:-.01em;} .fr .sub{display:block; color:var(--paper3); font-size:13px; margin-top:2px;}
+.badges{display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;}
+.bd{font-size:12px; padding:3px 9px; border-radius:10px; background:var(--s3); color:var(--paper2); font-weight:650; white-space:nowrap;}
+.bd.mp{background:rgba(233,162,59,.18); color:var(--amber2);} .bd.own{background:rgba(79,209,165,.16); color:var(--acc);} .bd.me{background:rgba(233,162,59,.9); color:#1d1406;}
+@media (max-width:560px){ .fr{grid-template-columns:56px minmax(0,1fr);} .fr .badges{grid-column:2; justify-content:flex-start;} }
+/* esplora */
+.ruler{display:flex; gap:8px; overflow-x:auto; padding:4px 0 6px; scrollbar-width:none;} .ruler::-webkit-scrollbar{display:none;}
+.ruler a{flex:none; display:flex; flex-direction:column; align-items:center; gap:5px; min-width:64px; padding:10px 10px 8px; border-radius:14px; background:var(--s1); border:1px solid var(--line);}
+.ruler a b{font-size:15px; font-weight:750;} .ruler a i{display:block; width:26px; border-radius:4px; background:linear-gradient(var(--acc),var(--acc2)); min-height:4px;}
+.ruler a small{color:var(--paper3); font-size:11.5px;}
+.genres{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px;}
+.genre{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; padding:14px; border-radius:14px; background:var(--s2); min-height:64px;}
+.genre b{font-weight:700; font-size:15.5px; line-height:1.25; letter-spacing:-.01em;} .genre i{font-style:normal; color:var(--paper3); font-size:13px; font-weight:600;}
+.chips{display:flex; flex-wrap:wrap; gap:8px;} .chip{padding:7px 12px; border-radius:16px; background:var(--s2); font-size:14px; font-weight:600;}
+/* album */
+.hero{position:absolute; left:0; right:0; top:0; height:460px; background:center/cover no-repeat; filter:blur(48px) saturate(1.3); opacity:.32; z-index:-1;
+  -webkit-mask-image:linear-gradient(#000,transparent); mask-image:linear-gradient(#000,transparent); pointer-events:none;}
+.album-head{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:28px; align-items:start; margin-top:8px;}
+.album-head > .cv{box-shadow:0 18px 50px rgba(0,0,0,.55);}
+.by{font-size:19px; font-weight:650; margin:2px 0 4px;} .meta{color:var(--paper2); margin:0 0 12px;}
+@media (max-width:680px){ .album-head{grid-template-columns:1fr; gap:18px;} .album-head > .cv{max-width:320px; width:78%; margin:0 auto;} }
+.listen{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; max-width:560px;}
+.listen a{display:flex; align-items:center; justify-content:center; gap:8px; height:46px; border-radius:23px; background:var(--s2); border:1px solid var(--line); font-weight:700; font-size:14.5px; text-align:center; padding:0 8px;}
+.listen a::before{content:""; width:10px; height:10px; border-radius:50%; background:var(--brand); flex:none;}
+.listen a:hover{border-color:var(--brand);}
+.acts{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
+.btn{display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px; border-radius:20px; border:1px solid var(--line); background:var(--s2); color:var(--paper); font-weight:650; font-size:14.5px; cursor:pointer;}
+.btn.on{background:var(--acc); color:#06261C; border-color:transparent;} .btn.sm{height:34px; padding:0 12px; font-size:13.5px;}
+.rate{display:flex; flex-wrap:wrap; gap:6px;} .rate button{width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--s2); font-weight:700; cursor:pointer;}
+.rate button.on{background:var(--amber); color:#1d1406; border-color:transparent;}
+.box{background:var(--s1); border:1px solid var(--line); border-radius:14px; margin:18px 0; overflow:hidden;}
+.box h3{margin:0; padding:12px 16px; border-bottom:1px solid var(--line); font-size:16px; font-weight:700; letter-spacing:-.01em;} .box .in{padding:12px 16px;}
+.plot{line-height:1.65; margin:0 0 8px; font-size:16px;}
+.tracks{list-style:none; margin:0; padding:0;} .tracks li{display:grid; grid-template-columns:32px minmax(0,1fr) auto; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.05);}
+.tracks .tn{color:var(--paper3); font-variant-numeric:tabular-nums; text-align:right;} .tracks .tl{color:var(--paper3); font-variant-numeric:tabular-nums;}
+.tracks .disc{display:block; padding:12px 0 4px; color:var(--paper3); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.06em; border:0;}
+.kv{display:grid; grid-template-columns:max-content minmax(0,1fr); gap:8px 16px; margin:0;} .kv dt{color:var(--paper3);} .kv dd{margin:0;}
+/* artista */
+.art-head{display:flex; gap:20px; align-items:center; margin-top:8px;}
+.ph-art{flex:none; width:112px; height:112px; border-radius:50%; background:var(--s3); display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:800; color:var(--paper3); overflow:hidden; position:relative;}
+.ph-art img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+.people{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px;}
+.person{display:flex; align-items:center; gap:12px; padding:10px; border-radius:14px; background:var(--s1); border:1px solid var(--line); min-width:0;}
+.person .ini{flex:none; width:44px; height:44px; border-radius:50%; background:var(--s3); display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--paper3);}
+.person b{display:block; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;} .person small{color:var(--paper3);}
+/* moduli */
+.filters{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 12px;}
+select,input[type=text],input[type=search],textarea{background:var(--s1); color:var(--paper); border:1px solid var(--line); border-radius:10px; font:inherit; font-size:15px; padding:8px 10px;}
+select{height:38px;} textarea{width:100%; min-height:140px;}
+.tabs{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 14px;} .tabs a{padding:8px 14px; border-radius:18px; background:var(--s1); border:1px solid var(--line); font-weight:650; font-size:14.5px;} .tabs a.on{background:var(--s3);}
+.rk{display:grid; grid-template-columns:30px 48px minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);}
+.rk .n{color:var(--amber2); font-weight:800; text-align:right;} .rk .cv{width:48px; border-radius:5px; box-shadow:none;} .rk .cv .ph{display:none;}
+.rk .ctl{display:flex; gap:4px;} .rk .ctl button{width:32px; height:32px; border-radius:8px; border:1px solid var(--line); background:var(--s2); cursor:pointer;}
+.hidden{display:none !important;}
+#toast{position:fixed; left:50%; bottom:calc(22px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--paper); color:#111; padding:10px 16px; border-radius:20px; font-weight:650; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:20; max-width:90vw; text-align:center;}
+#toast.on{opacity:1;}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#"><img src="icons/icon-192.png" alt=""><b>Atlante della Musica</b></a>
+  <input id="q" type="search" placeholder="Cerca un album o un artista…" autocomplete="off" enterkeyhint="search">
+  <nav class="nav" id="nav">
+    <a href="#" data-k="">Esplora</a><a href="#lista/capolavori" data-k="capolavori">Capolavori</a><a href="#artisti" data-k="artisti">Artisti</a>
+    <a href="#liste" data-k="liste">Le mie liste</a><a href="#classifiche" data-k="classifiche">Classifiche</a><a href="#strumenti" data-k="strumenti">Strumenti</a>
+  </nav>
+</header>
+<main id="view"><p class="note">Apro l'atlante…</p></main>
+<div id="toast"></div>
+<script>
+'use strict';
+/* =====================================================================
+   Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
+   ===================================================================== */
+const APP_VERSION = '1.0';
+const $ = id => document.getElementById(id), V = () => $('view');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+const uuid = id => id.length === 32 ? `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20)}` : id;
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+const NOW = new Date(), YEAR = NOW.getFullYear(), TODAY = NOW.toISOString().slice(0, 10);
+const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+const fmtD = d => { const m = String(d || '').match(/^(\d{4})-(\d\d)-(\d\d)$/); return m ? `${+m[3]} ${MESI[+m[2] - 1]} ${m[1]}` : String(d || ''); };
+const fmtN = n => Number(n || 0).toLocaleString('it-IT');
+const dur = ms => { const s = Math.round((ms || 0) / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const durTot = ms => { const m = Math.round((ms || 0) / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove('on'), 2600); }
+
+/* ---------- l'indice ---------- */
+let IDX = [], BY_ID = new Map(), ARTISTS = new Map(), GENRES = [], META = { built: '', dump: '' }, RATED = false, MP = new Set(), GEMS = [], OWN = new Map(), TBYT = null;
+const TYPES = { L: 'Dal vivo', C: 'Raccolta', S: 'Colonna sonora', R: 'Remix' };
+const typeLabel = e => e.ty[0] === 'E' ? 'EP' : (TYPES[e.ty[1]] || 'Album');
+const typeKey = e => e.ty[0] === 'E' ? 'ep' : e.ty.length > 1 ? e.ty[1] : 'studio';
+
+async function gunzipB64(b64){
+  const bin = atob(b64), u = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+}
+async function loadIndex(){
+  let html;
+  try{ const r = await fetch('../index.html', { cache: 'no-cache' }); if(!r.ok) throw new Error('http'); html = await r.text(); }
+  catch(e){ const r = await fetch('../index.html', { cache: 'force-cache' }); html = await r.text(); }   // offline: la copia salvata
+  const m = html.match(/<script type="text\/plain" id="mbIndexData"([^>]*)>([^<]*)<\/script>/);
+  if(!m || !m[2].trim()) throw new Error('noindex');
+  META.built = (m[1].match(/data-built="([^"]*)"/) || [])[1] || ''; META.dump = (m[1].match(/data-dump="([^"]*)"/) || [])[1] || '';
+  build(await gunzipB64(m[2].trim()));
+}
+function build(txt){
+  IDX = [];
+  for(const l of txt.split('\n')){
+    if(!l) continue; const p = l.split('|'); if(p.length < 5 || p[0].length !== 32) continue;
+    IDX.push({ id: p[0], t: p[1] || '', a: p[2] || '', y: parseInt(p[3], 10) || 0, ty: p[4] || 'A', g: p[5] ? p[5].split(', ').filter(Boolean) : [],
+      rv: parseInt(p[6], 10) || 0, vc: parseInt(p[7], 10) || 0, d: p[8] || '', r: IDX.length });   // r: posizione per fama (l'indice è già in ordine)
+  }
+  BY_ID = new Map(IDX.map(e=>[e.id, e]));
+  ARTISTS = new Map();
+  for(const e of IDX){ const k = norm(e.a); if(!k) continue; let A = ARTISTS.get(k); if(!A){ A = { name: e.a, k, list: [], fame: 0 }; ARTISTS.set(k, A); } A.list.push(e); A.fame += 1 / Math.sqrt(e.r + 25); }
+  const gc = new Map(); for(const e of IDX) for(const g of e.g) gc.set(g, (gc.get(g) || 0) + 1);
+  GENRES = [...gc.entries()].filter(x=>x[1] >= 30).sort((a, b)=>b[1] - a[1]).map(([g, n])=>({ g, n }));
+  // capolavori: il voto degli utenti di MusicBrainz, pesato su quanti hanno votato. Soglie che si adattano ai dati.
+  const rated = IDX.filter(e=>e.vc >= 3 && e.rv); RATED = rated.length >= 200; MP = new Set(); GEMS = [];
+  if(RATED){
+    const C = rated.reduce((s, e)=>s + e.rv, 0) / rated.length, m = 8;
+    for(const e of IDX) e.br = e.vc ? (e.vc * e.rv + m * C) / (e.vc + m) : 0;
+    const pool = IDX.filter(e=>e.vc >= 10).sort((a, b)=>b.br - a.br || a.r - b.r);
+    MP = new Set(pool.slice(0, Math.min(400, Math.max(20, Math.round(pool.length * 0.06)))).map(e=>e.id));
+    const cut = pool.length ? pool[Math.min(pool.length - 1, Math.round(pool.length * 0.2))].br : 1e9;
+    GEMS = IDX.filter(e=>e.vc >= 5 && e.br >= cut && e.r >= 6000 && !MP.has(e.id)).sort((a, b)=>b.br - a.br).slice(0, 300);   // una scoperta, non un mucchio
+  }
+  TBYT = null;
+}
+const masterpieces = () => IDX.filter(e=>MP.has(e.id)).sort((a, b)=>b.br - a.br || a.r - b.r);
+function novita(){ return IDX.filter(e=>e.y >= YEAR - 1 && (!e.d || e.d <= TODAY)).sort((a, b)=>(b.d || String(b.y)).localeCompare(a.d || String(a.y)) || a.r - b.r); }
+
+/* ---------- la tua discoteca: si legge, non si tocca ---------- */
+function readCollection(){
+  return new Promise(res=>{
+    try{
+      const r = indexedDB.open('mpml_music');
+      r.onupgradeneeded = e => { try{ e.target.transaction.abort(); }catch(x){} };   // non esiste: non la creo (romperebbe l'app dei dischi)
+      r.onsuccess = () => { const db = r.result;
+        if(!db.objectStoreNames.contains('kv')){ db.close(); return res(null); }
+        try{ const q = db.transaction('kv', 'readonly').objectStore('kv').get('collection'); q.onsuccess = () => { res(q.result || null); db.close(); }; q.onerror = () => { res(null); db.close(); }; }
+        catch(e){ db.close(); res(null); } };
+      r.onerror = () => res(null);
+    }catch(e){ res(null); }
+  }).then(v=>{ if(v) return v; try{ return JSON.parse(localStorage.getItem('mpmlm_collection') || 'null'); }catch(e){ return null; } });
+}
+async function loadOwn(){
+  const col = await readCollection(); OWN = new Map(); if(!Array.isArray(col)) return;
+  const byTA = new Map(); for(const e of IDX){ const k = norm(e.t) + '|' + norm(e.a); if(!byTA.has(k)) byTA.set(k, e); }
+  for(const a of col){
+    if(!a) continue;
+    const rid = String(a.rgid || '').replace(/-/g, '').toLowerCase();
+    const e = (rid && BY_ID.get(rid)) || byTA.get(norm(a.titolo) + '|' + norm(a.artista));
+    if(e && !OWN.has(e.id)) OWN.set(e.id, a.formato || '');
+  }
+}
+
+/* ---------- le tue liste, i tuoi voti, le tue classifiche ---------- */
+const LS = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; }catch(e){ return d; } };
+let LISTE = LS('amus-liste', {}), CLS = LS('amus-classifiche', []);
+const saveL = () => { try{ localStorage.setItem('amus-liste', JSON.stringify(LISTE)); }catch(e){ toast('Memoria piena: scarica le liste'); } };
+const saveC = () => { try{ localStorage.setItem('amus-classifiche', JSON.stringify(CLS)); }catch(e){ toast('Memoria piena: scarica le liste'); } };
+function setL(id, patch){ const c = Object.assign({}, LISTE[id] || {}, patch); Object.keys(c).forEach(k=>{ if(!c[k]) delete c[k]; }); if(Object.keys(c).length) LISTE[id] = c; else delete LISTE[id]; saveL(); }
+
+/* ---------- rete: memoria, MusicBrainz una richiesta al secondo ---------- */
+let _db = null; const MEM = new Map();
+function adb(){ if(_db) return _db; _db = new Promise(res=>{ try{ const r = indexedDB.open('atlante-musica', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }catch(e){ res(null); } }); return _db; }
+async function dget(k){ if(MEM.has(k)) return MEM.get(k); const db = await adb(); if(!db) return null; return new Promise(res=>{ try{ const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }catch(e){ res(null); } }); }
+async function dset(k, v){ MEM.set(k, v); const db = await adb(); if(!db) return; try{ db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); }catch(e){} }
+async function jget(url, ms){ const c = new AbortController(), t = setTimeout(()=>c.abort(), ms || 15000); try{ const r = await fetch(url, { signal: c.signal }); if(!r.ok) throw new Error('http ' + r.status); return await r.json(); } finally{ clearTimeout(t); } }
+let _mbq = Promise.resolve(), _mbl = 0;
+function mbget(path){ const p = _mbq.then(async ()=>{ const w = 1100 - (Date.now() - _mbl); if(w > 0) await new Promise(r=>setTimeout(r, w)); _mbl = Date.now(); return jget('https://musicbrainz.org/ws/2/' + path); }); _mbq = p.catch(()=>{}); return p; }
+const WD = 'https://www.wikidata.org/w/api.php?format=json&origin=*&';
+const claimIds = (ent, p) => (((ent.claims || {})[p]) || []).map(c=>c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id).filter(Boolean);
+const claimVal = (ent, p) => { const c = (((ent.claims || {})[p]) || [])[0]; return c && c.mainsnak && c.mainsnak.datavalue ? c.mainsnak.datavalue.value : null; };
+const wdLabel = ent => ent && ent.labels ? ((ent.labels.it || ent.labels.en || {}).value || '') : '';
+async function wdEntities(ids, props){ const out = {}; for(let i = 0; i < ids.length; i += 50){ try{ const j = await jget(`${WD}action=wbgetentities&ids=${ids.slice(i, i + 50).join('|')}&props=${props || 'labels'}&languages=it|en`); Object.assign(out, j.entities || {}); }catch(e){} } return out; }
+async function wdByMB(prop, mbid){ const j = await jget(`${WD}action=query&list=search&srsearch=haswbstatement:${prop}=${mbid}&srlimit=1`); return ((j.query && j.query.search) || [])[0] ? j.query.search[0].title : ''; }
+async function wikiSummary(sl){
+  for(const [k, lang] of [['itwiki', 'it'], ['enwiki', 'en']]){
+    const t = sl && sl[k] && sl[k].title; if(!t) continue;
+    try{ const w = await jget(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t.replace(/ /g, '_'))}`);
+      if(w && w.extract) return { text: w.extract, lang, url: (w.content_urls && w.content_urls.desktop && w.content_urls.desktop.page) || `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(t)}`, img: (w.thumbnail && w.thumbnail.source) || '' }; }catch(e){}
+  }
+  return null;
+}
+
+/* ---------- pezzi di pagina ---------- */
+const PAL = ['#3B2F4F', '#2F4A4F', '#4F3A2F', '#2F3F4F', '#4A2F3A', '#35452F', '#4F4A2F', '#2F4F40', '#40304F', '#4F2F2F'];
+const tileBg = e => PAL[parseInt(e.id.slice(0, 2), 16) % PAL.length];
+const coverUrl = (e, size) => `https://coverartarchive.org/release-group/${uuid(e.id)}/front-${size || 250}`;
+const cover = (e, size) => `<div class="cv" style="--tilebg:${tileBg(e)}"><img src="${coverUrl(e, size)}" alt="" loading="lazy" onerror="this.remove()"><span class="ph"><span>${esc(e.t)}</span><small>${esc(e.a)}</small></span>${MP.has(e.id) ? '<i class="mk">✦</i>' : ''}${OWN.has(e.id) ? '<i class="own">✓</i>' : ''}</div>`;
+const card = e => `<a class="card" href="#album/${e.id}">${cover(e)}<b>${esc(e.t)}</b><small>${esc(e.a)}${e.y ? ' · ' + e.y : ''}</small></a>`;
+function badges(e){ const L = LISTE[e.id] || {}, b = [];
+  if(MP.has(e.id)) b.push('<span class="bd mp">✦ Capolavoro</span>');
+  if(OWN.has(e.id)) b.push('<span class="bd own">✓ In discoteca</span>');
+  if(L.r) b.push(`<span class="bd me">Il tuo voto ${L.r}</span>`);
+  return b.join(''); }
+const row = e => `<a class="fr" href="#album/${e.id}">${cover(e)}<span style="min-width:0"><b>${esc(e.t)}</b><span class="sub">${esc(e.a)}${e.y ? ', ' + e.y : ''}${typeLabel(e) !== 'Album' ? ', ' + typeLabel(e) : ''}</span></span><span class="badges">${badges(e)}</span></a>`;
+const strip = (title, list, href, more) => list.length ? `<h2 class="sec">${title}${href ? `<a class="more" href="${href}">${more || 'Vedi tutti'}</a>` : ''}</h2><div class="strip">${list.slice(0, 16).map(card).join('')}</div>` : '';
+const box = (t, html) => `<div class="box"><h3>${t}</h3><div class="in">${html}</div></div>`;
+const initials = n => String(n || '').split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0, 2).toUpperCase();
+const enc = encodeURIComponent;
+const STREAM = [['Spotify', '#1DB954', q=>'https://open.spotify.com/search/' + enc(q)], ['YouTube Music', '#FF0033', q=>'https://music.youtube.com/search?q=' + enc(q)], ['Apple Music', '#FA2D48', q=>'https://music.apple.com/search?term=' + enc(q)]];
+const listen = q => `<div class="listen">${STREAM.map(([n, c, f])=>`<a href="${esc(f(q))}" target="_blank" rel="noopener" style="--brand:${c}">${n}</a>`).join('')}</div>`;
+const decLabel = d => d < 2000 ? `'${String(d).slice(2)}` : String(d);
+function setNav(k){ document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on', a.dataset.k === k)); }
+
+/* ---------- Esplora ---------- */
+const LISTS = {
+  famosi: ['I più famosi', () => IDX, 'Gli album più conosciuti, dal più famoso.'],
+  capolavori: ['✦ Capolavori', masterpieces, 'I dischi con il voto più alto degli utenti di MusicBrainz, contando anche quanti hanno votato.'],
+  gemme: ['💎 Gemme nascoste', () => GEMS, 'Dischi amatissimi da chi li conosce, ma lontani dai più famosi.'],
+  novita: ['🆕 Novità', novita, 'Le uscite di quest\'anno e dello scorso, dalla più recente.'],
+  live: ['🎤 Dal vivo', () => IDX.filter(e=>e.ty.includes('L')), 'I concerti diventati dischi.'],
+  colonne: ['🎬 Colonne sonore', () => IDX.filter(e=>e.ty.includes('S')), 'La musica dei film, delle serie e dei videogiochi.'],
+  raccolte: ['📀 Raccolte', () => IDX.filter(e=>e.ty.includes('C')), 'Antologie e "greatest hits".'],
+  ep: ['💿 EP', () => IDX.filter(e=>e.ty[0] === 'E'), 'I dischi brevi.'],
+  discoteca: ['✓ Nella tua discoteca', () => IDX.filter(e=>OWN.has(e.id)), 'I dischi della tua collezione che sono anche nell\'atlante.'],
+};
+function decades(){ const c = new Map(); for(const e of IDX){ if(e.y < 1940 || e.y > YEAR) continue; const d = Math.floor(e.y / 10) * 10; c.set(d, (c.get(d) || 0) + 1); } return [...c.entries()].filter(x=>x[1] >= 30).sort((a, b)=>a[0] - b[0]).map(([d, n])=>({ d, n })); }
+function viewHome(){
+  setNav(''); const dec = decades(), mx = Math.max(1, ...dec.map(x=>x.n));
+  const scop = ['capolavori', 'gemme', 'live', 'colonne', 'raccolte', 'ep'].map(k=>[k, LISTS[k][1]().length]).filter(x=>x[1] > 0);
+  V().innerHTML = `<div class="ruler">${dec.map(x=>`<a href="#decennio/${x.d}"><b>${decLabel(x.d)}</b><i style="height:${Math.round(6 + 34 * x.n / mx)}px"></i><small>${fmtN(x.n)}</small></a>`).join('')}</div>`
+    + (RATED ? strip('✦ Capolavori', masterpieces(), '#lista/capolavori') : '')
+    + strip('🆕 Novità', novita(), '#lista/novita', 'Vedi tutte')
+    + strip('I più famosi', IDX, '#lista/famosi')
+    + strip('✓ Nella tua discoteca', LISTS.discoteca[1](), '#lista/discoteca')
+    + CLS.filter(c=>c.pin && c.items.length).map(c=>strip('🏆 ' + esc(c.name), c.items.map(id=>BY_ID.get(id)).filter(Boolean), '#classifica/' + c.id, 'Apri')).join('')
+    + (scop.length ? `<h2 class="sec">Scopri</h2><div class="genres">${scop.map(([k, n])=>`<a class="genre" href="#lista/${k}"><b>${esc(LISTS[k][0])}</b><i>${fmtN(n)}</i></a>`).join('')}</div>` : '')
+    + `<h2 class="sec">Per genere</h2><div class="genres">${GENRES.slice(0, 24).map(x=>`<a class="genre" href="#genere/${enc(x.g)}"><b>${esc(cap(x.g))}</b><i>${fmtN(x.n)}</i></a>`).join('')}</div>`
+    + `<p class="note" style="margin-top:26px">${fmtN(IDX.length)} dischi da MusicBrainz${META.built ? ', indice del ' + esc(fmtD(META.built)) : ''}. <a class="lnk" href="../">Apri la tua Discoteca</a></p>`;
+}
+function viewList(k, arg){
+  let title, base, lead;
+  if(k === 'genere'){ title = cap(arg); base = IDX.filter(e=>e.g.includes(arg)); lead = 'Dal più famoso.'; }
+  else if(k === 'decennio'){ const d = parseInt(arg, 10) || 1970; title = `Gli anni ${decLabel(d)}`; base = IDX.filter(e=>e.y >= d && e.y < d + 10); lead = 'Dal più famoso.'; }
+  else { const L = LISTS[k]; if(!L) return viewHome(); title = L[0]; base = L[1](); lead = L[2]; }
+  setNav(k === 'capolavori' ? 'capolavori' : '');
+  if(k === 'capolavori' && !RATED) lead = 'I capolavori arrivano con il prossimo aggiornamento dell\'indice dei dischi, che porterà anche i voti degli utenti di MusicBrainz. Intanto trovi i dischi più famosi in Esplora.';
+  const st = { g: '', d: '', t: '', n: 60 }, dec = decades();
+  const opt = (id, first, items) => `<select id="${id}"><option value="">${first}</option>${items.map(([v, l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`;
+  V().innerHTML = `<h1 class="pg">${esc(title)}</h1><p class="lead">${esc(lead)}</p>`
+    + (base.length ? `<div class="filters">${k !== 'genere' ? opt('fG', 'Tutti i generi', GENRES.slice(0, 60).map(x=>[x.g, cap(x.g)])) : ''}${k !== 'decennio' ? opt('fD', 'Tutti i decenni', dec.map(x=>[x.d, 'Anni ' + decLabel(x.d)])) : ''}${opt('fT', 'Tutti i tipi', [['studio', 'Album in studio'], ['ep', 'EP'], ['L', 'Dal vivo'], ['C', 'Raccolte'], ['S', 'Colonne sonore']])}</div><p class="note" id="cnt"></p><div class="grid" id="lst"></div><p style="margin-top:18px"><button class="btn" id="moreBtn">Mostra altri</button></p>` : '');
+  if(!base.length) return;
+  const apply = () => { let l = base; if(st.g) l = l.filter(e=>e.g.includes(st.g)); if(st.d){ const d = +st.d; l = l.filter(e=>e.y >= d && e.y < d + 10); } if(st.t) l = l.filter(e=>typeKey(e) === st.t);
+    $('cnt').textContent = `${fmtN(l.length)} ${l.length === 1 ? 'disco' : 'dischi'}`; $('lst').innerHTML = l.slice(0, st.n).map(card).join(''); $('moreBtn').classList.toggle('hidden', l.length <= st.n); };
+  ['fG', 'fD', 'fT'].forEach((id, i)=>{ if($(id)) $(id).onchange = ev => { st[['g', 'd', 't'][i]] = ev.target.value; st.n = 60; apply(); }; });
+  $('moreBtn').onclick = () => { st.n += 60; apply(); };
+  apply();
+}
+
+/* ---------- ricerca ---------- */
+function search(q){
+  const n = norm(q); if(n.length < 2) return { arts: [], albs: [] };
+  const words = n.split(' ');
+  const arts = [...ARTISTS.values()].filter(A=>A.k.includes(n) || words.every(w=>A.k.split(' ').some(x=>x.startsWith(w)))).sort((a, b)=>b.fame - a.fame).slice(0, 8);
+  const albs = []; for(const e of IDX){ const s = e._k || (e._k = norm(e.t) + ' ' + norm(e.a)); if(words.every(w=>s.includes(w))){ albs.push(e); if(albs.length >= 80) break; } }
+  return { arts, albs };
+}
+const personCard = A => `<a class="person" href="#artista/${enc(A.name)}"><span class="ini">${esc(initials(A.name))}</span><span style="min-width:0"><b>${esc(A.name)}</b><small>${A.list.length} ${A.list.length === 1 ? 'disco' : 'dischi'}</small></span></a>`;
+function viewSearch(q){
+  setNav(''); if($('q') !== document.activeElement) $('q').value = q;
+  const { arts, albs } = search(q);
+  V().innerHTML = `<h1 class="pg">“${esc(q)}”</h1>` + (arts.length ? `<h2 class="sec">Artisti</h2><div class="people">${arts.map(personCard).join('')}</div>` : '')
+    + (albs.length ? `<h2 class="sec">Dischi</h2><div class="rows">${albs.map(row).join('')}</div>` : '')
+    + (!arts.length && !albs.length ? '<p class="lead">Nessun risultato. L\'atlante contiene gli 80.000 dischi più conosciuti: prova con un altro titolo o con il nome dell\'artista.</p>' : '');
+}
+
+/* ---------- album ---------- */
+function viewAlbum(id){
+  const e = BY_ID.get(id); if(!e) return viewHome(); setNav('');
+  const L = LISTE[e.id] || {}, A = ARTISTS.get(norm(e.a)), other = A ? A.list.filter(x=>x.id !== e.id) : [];
+  V().innerHTML = `<div class="hero" style="background-image:url('${coverUrl(e, 250)}')"></div>
+    <div class="album-head">${cover(e, 500)}<div>
+      <h1 class="pg">${esc(e.t)}</h1>
+      <p class="by"><a class="lnk" href="#artista/${enc(e.a)}">${esc(e.a)}</a></p>
+      <p class="meta">${[e.d ? fmtD(e.d) : e.y || '', typeLabel(e)].filter(Boolean).join(' · ')}</p>
+      ${e.g.length ? `<div class="chips">${e.g.map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div>` : ''}
+      <div class="badges" style="justify-content:flex-start; margin-top:12px">${MP.has(e.id) ? '<span class="bd mp">✦ Capolavoro</span>' : ''}${OWN.has(e.id) ? `<span class="bd own">✓ Nella tua discoteca${OWN.get(e.id) ? ' · ' + esc(OWN.get(e.id)) : ''}</span>` : ''}</div>
+      <p class="lbl">Ascolta su</p>${listen(e.a + ' ' + e.t)}
+      <div class="acts"><button class="btn${L.s === 'v' ? ' on' : ''}" data-act="v">✓ Ascoltato</button><button class="btn${L.s === 'd' ? ' on' : ''}" data-act="d">+ Da ascoltare</button><button class="btn${L.f ? ' on' : ''}" data-act="f">♥ Preferito</button><button class="btn" data-act="rk">🏆 In classifica</button></div>
+      <p class="lbl">Il tuo voto</p><div class="rate" id="rate">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=>`<button type="button" data-r="${n}" class="${L.r === n ? 'on' : ''}">${n}</button>`).join('')}</div>
+    </div></div>
+    <div id="online"><p class="note">Carico tracce e notizie…</p></div>
+    ${other.length ? `<h2 class="sec">Altri dischi di ${esc(e.a)}<a class="more" href="#artista/${enc(e.a)}">Discografia</a></h2><div class="strip">${other.slice(0, 16).map(card).join('')}</div>` : ''}`;
+  V().querySelectorAll('[data-act]').forEach(b=>b.onclick = () => {
+    const a = b.dataset.act, c = LISTE[e.id] || {};
+    if(a === 'rk') return pickRanking(e);
+    if(a === 'f') setL(e.id, { f: c.f ? 0 : 1 }); else setL(e.id, { s: c.s === a ? '' : a });
+    const n = LISTE[e.id] || {}; V().querySelectorAll('[data-act]').forEach(x=>x.classList.toggle('on', x.dataset.act === 'f' ? !!n.f : n.s === x.dataset.act));
+    toast(a === 'f' ? (n.f ? 'Tra i preferiti' : 'Tolto dai preferiti') : n.s ? (n.s === 'v' ? 'Segnato come ascoltato' : 'Aggiunto a "Da ascoltare"') : 'Tolto dalla lista');
+  });
+  $('rate').querySelectorAll('button').forEach(b=>b.onclick = () => { const n = +b.dataset.r, cur = (LISTE[e.id] || {}).r; setL(e.id, { r: cur === n ? 0 : n });
+    $('rate').querySelectorAll('button').forEach(x=>x.classList.toggle('on', +x.dataset.r === (LISTE[e.id] || {}).r)); toast((LISTE[e.id] || {}).r ? `Il tuo voto: ${n}` : 'Voto tolto'); });
+  albumOnline(e).then(d=>{ if(location.hash.replace(/^#/, '') === 'album/' + e.id && $('online')) renderAlbumOnline(e, d); }).catch(()=>{ if($('online')) $('online').innerHTML = ''; });
+}
+async function albumOnline(e){
+  const key = 'alb1:' + e.id, c = await dget(key); if(c && Date.now() - c.at < 30 * 864e5) return c;
+  if(navigator.onLine === false) return c || { offline: 1 };
+  const out = { at: Date.now() };
+  try{
+    const j = await mbget(`release?release-group=${uuid(e.id)}&inc=recordings+media&status=official&limit=25&fmt=json`);
+    const rels = (j.releases || []).filter(r=>(r.media || []).some(m=>(m.tracks || []).length)).sort((a, b)=>(a.date || '9999').localeCompare(b.date || '9999'));
+    const best = rels.find(r=>/^(XW|XE|US|GB|IT)$/.test(r.country || '')) || rels[0];
+    if(best){ out.tracks = []; best.media.forEach((m, mi)=>(m.tracks || []).forEach(t=>out.tracks.push({ d: best.media.length > 1 ? mi + 1 : 0, n: t.number || t.position, t: t.title, ms: t.length || (t.recording && t.recording.length) || 0 })));
+      out.ed = [best.date || '', best.country || ''].filter(Boolean).join(', '); }
+  }catch(err){}
+  try{
+    const qid = await wdByMB('P436', uuid(e.id));
+    if(qid){
+      out.qid = qid;
+      const ent = (await wdEntities([qid], 'claims|sitelinks'))[qid] || {};
+      const P = { label: claimIds(ent, 'P264'), prod: claimIds(ent, 'P162'), aw: claimIds(ent, 'P166'), prev: claimIds(ent, 'P155').slice(0, 1), next: claimIds(ent, 'P156').slice(0, 1) };
+      const refs = [...new Set(Object.values(P).flat())], labs = refs.length ? await wdEntities(refs, 'labels|claims') : {};
+      const ref = q => { const x = labs[q]; const mb = x && claimVal(x, 'P436'); const inIdx = mb && BY_ID.get(String(mb).replace(/-/g, '')); return { l: wdLabel(x), id: inIdx ? inIdx.id : '' }; };
+      out.f = {}; Object.entries(P).forEach(([k, l])=>{ out.f[k] = l.map(ref).filter(x=>x.l); });
+      out.wiki = await wikiSummary(ent.sitelinks);
+    }
+  }catch(err){}
+  await dset(key, out); return out;
+}
+function renderAlbumOnline(e, d){
+  if(!d || d.offline){ $('online').innerHTML = '<p class="note">Tracce e notizie arriveranno con la rete.</p>'; return; }
+  const parts = [];
+  if(d.tracks && d.tracks.length){
+    const tot = d.tracks.reduce((s, t)=>s + (t.ms || 0), 0); let disc = 0;
+    parts.push(box('Le tracce', `<ol class="tracks">${d.tracks.map(t=>{ let h = ''; if(t.d && t.d !== disc){ disc = t.d; h = `<li class="disc">Disco ${t.d}</li>`; } return h + `<li><span class="tn">${esc(t.n)}</span><span>${esc(t.t)}</span><span class="tl">${t.ms ? dur(t.ms) : ''}</span></li>`; }).join('')}</ol><p class="note">${d.tracks.length} tracce${tot ? ', ' + durTot(tot) : ''}${d.ed ? '. Edizione: ' + esc(d.ed) : ''}.</p>`));
+  }
+  if(d.wiki) parts.push(box('La storia', `<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(d.wiki.text)}</p><p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
+  const f = d.f || {}, kv = [], names = l => l.map(x=>x.id ? `<a class="lnk" href="#album/${x.id}">${esc(x.l)}</a>` : esc(x.l)).join(', ');
+  if(f.label && f.label.length) kv.push(['Etichetta', names(f.label)]);
+  if(f.prod && f.prod.length) kv.push(['Produzione', names(f.prod)]);
+  if(f.aw && f.aw.length) kv.push(['Premi', names(f.aw.slice(0, 6))]);
+  if(f.prev && f.prev.length) kv.push(['Disco precedente', names(f.prev)]);
+  if(f.next && f.next.length) kv.push(['Disco successivo', names(f.next)]);
+  if(kv.length) parts.push(box('Scheda', `<dl class="kv">${kv.map(([k, v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`));
+  parts.push(`<p class="note">Fonti: <a class="lnk" href="https://musicbrainz.org/release-group/${uuid(e.id)}" target="_blank" rel="noopener">MusicBrainz ↗</a>${d.qid ? ` · <a class="lnk" href="https://www.wikidata.org/wiki/${esc(d.qid)}" target="_blank" rel="noopener">Wikidata ↗</a>` : ''}</p>`);
+  $('online').innerHTML = parts.join('');
+}
+
+/* ---------- artista ---------- */
+function topGenres(l, n){ const c = new Map(); l.forEach(e=>e.g.forEach(g=>c.set(g, (c.get(g) || 0) + 1))); return [...c.entries()].sort((a, b)=>b[1] - a[1]).slice(0, n).map(x=>x[0]); }
+function viewArtist(name){
+  const A = ARTISTS.get(norm(name)); if(!A) return viewHome(); setNav('');
+  const L = A.list, ys = L.map(e=>e.y).filter(Boolean), byYear = l => l.slice().sort((a, b)=>(a.y || 9999) - (b.y || 9999));
+  const sec = (t, l) => l.length ? `<h2 class="sec">${t}<span class="cnt">${l.length}</span></h2><div class="grid">${byYear(l).map(card).join('')}</div>` : '';
+  V().innerHTML = `<div class="art-head"><div class="ph-art" id="artPh">${esc(initials(A.name))}</div><div style="min-width:0">
+      <h1 class="pg">${esc(A.name)}</h1><p class="meta">${L.length} ${L.length === 1 ? 'disco' : 'dischi'} nell'atlante${ys.length ? `, dal ${Math.min(...ys)} al ${Math.max(...ys)}` : ''}</p>
+      <div class="chips">${topGenres(L, 4).map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div><div id="artFacts" class="note" style="margin-top:10px"></div></div></div>
+    <p class="lbl">Ascolta su</p>${listen(A.name)}<div id="artBio"></div>
+    ${L.length > 6 ? strip('I più famosi', L, '', '') : ''}
+    ${sec('Album in studio', L.filter(e=>e.ty === 'A'))}${sec('EP', L.filter(e=>e.ty[0] === 'E'))}${sec('Dal vivo', L.filter(e=>e.ty.includes('L')))}${sec('Raccolte', L.filter(e=>e.ty.includes('C')))}${sec('Colonne sonore', L.filter(e=>e.ty.includes('S')))}${sec('Altro', L.filter(e=>e.ty[0] === 'A' && /R/.test(e.ty) && !/[LCS]/.test(e.ty)))}`;
+  artistOnline(A).then(d=>{
+    if(location.hash.replace(/^#/, '') !== 'artista/' + enc(A.name) && decodeURIComponent(location.hash.replace(/^#/, '')) !== 'artista/' + A.name) return;
+    if(!d || !d.qid) return;
+    if(d.img && $('artPh')) $('artPh').insertAdjacentHTML('beforeend', `<img src="${esc(d.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`);
+    if(d.facts && $('artFacts')) $('artFacts').textContent = d.facts;
+    if(d.wiki && $('artBio')) $('artBio').innerHTML = box('Biografia', `<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(d.wiki.text)}</p><p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`);
+  }).catch(()=>{});
+}
+async function artistOnline(A){
+  const key = 'art1:' + A.k, c = await dget(key); if(c && Date.now() - c.at < 60 * 864e5) return c;
+  if(navigator.onLine === false) return c;
+  const out = { at: Date.now() };
+  // l'artista si trova attraverso i suoi dischi più famosi: niente omonimi
+  for(const e of A.list.slice(0, 3)){
+    try{
+      const aq = await wdByMB('P436', uuid(e.id)); if(!aq) continue;
+      const alb = (await wdEntities([aq], 'claims'))[aq] || {}, perf = claimIds(alb, 'P175'); if(!perf.length) continue;
+      const ents = await wdEntities(perf, 'labels|claims|sitelinks');
+      const hit = perf.find(q=>{ const l = norm(wdLabel(ents[q])); return l && (l === A.k || A.k.includes(l) || l.includes(A.k)); });
+      if(!hit) continue;
+      const x = ents[hit]; out.qid = hit;
+      const img = claimVal(x, 'P18'); if(img) out.img = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + enc(img) + '?width=240';
+      const yr = p => { const v = claimVal(x, p); const m = v && v.time && v.time.match(/^[+-](\d{4})/); return m ? m[1] : ''; };
+      const from = yr('P571') || yr('P569'), to = yr('P576') || yr('P570'), band = !!claimVal(x, 'P571');
+      const cq = (claimIds(x, 'P495')[0] || claimIds(x, 'P27')[0] || claimIds(x, 'P740')[0]); const cl = cq ? wdLabel((await wdEntities([cq]))[cq]) : '';
+      out.facts = [band ? (from ? `In attività dal ${from}${to ? ' al ' + to : ''}` : '') : (from ? `Nato nel ${from}${to ? ', morto nel ' + to : ''}` : ''), cl].filter(Boolean).join(' · ');
+      out.wiki = await wikiSummary(x.sitelinks);
+      break;
+    }catch(err){}
+  }
+  await dset(key, out); return out;
+}
+function viewArtists(){
+  setNav('artisti'); const all = [...ARTISTS.values()].filter(A=>A.list.length >= 2).sort((a, b)=>b.fame - a.fame);
+  let n = 90;
+  V().innerHTML = `<h1 class="pg">Artisti</h1><p class="lead">Dal più famoso, in base alla fama dei loro dischi.</p><input id="af" type="search" placeholder="Filtra per nome…" style="width:100%; max-width:420px; margin-bottom:14px"><div class="people" id="al"></div><p style="margin-top:18px"><button class="btn" id="am">Mostra altri</button></p>`;
+  const draw = () => { const f = norm($('af').value), l = f ? all.filter(A=>A.k.includes(f)) : all; $('al').innerHTML = l.slice(0, n).map(personCard).join(''); $('am').classList.toggle('hidden', l.length <= n); };
+  $('af').oninput = () => { n = 90; draw(); }; $('am').onclick = () => { n += 90; draw(); }; draw();
+}
+
+/* ---------- le mie liste ---------- */
+function viewMine(tab){
+  setNav('liste'); tab = tab || 'ascoltati';
+  const T = { ascoltati: ['Ascoltati', id=>LISTE[id].s === 'v'], daascoltare: ['Da ascoltare', id=>LISTE[id].s === 'd'], preferiti: ['Preferiti', id=>!!LISTE[id].f], voti: ['I tuoi voti', id=>!!LISTE[id].r] };
+  const ids = k => Object.keys(LISTE).filter(id=>BY_ID.has(id) && T[k][1](id));
+  const cur = ids(tab).map(id=>BY_ID.get(id)); if(tab === 'voti') cur.sort((a, b)=>LISTE[b.id].r - LISTE[a.id].r || a.r - b.r);
+  V().innerHTML = `<h1 class="pg">Le mie liste</h1><div class="tabs">${Object.entries(T).map(([k, [t]])=>`<a href="#liste/${k}" class="${k === tab ? 'on' : ''}">${t} <span class="note">${ids(k).length}</span></a>`).join('')}</div>`
+    + (cur.length ? (tab === 'voti' ? `<div class="rows">${cur.map(row).join('')}</div>` : `<div class="grid">${cur.map(card).join('')}</div>`) : '<p class="lead">Ancora vuota. Dalla pagina di un disco puoi segnarlo come ascoltato, da ascoltare o preferito, e dargli il tuo voto.</p>');
+}
+
+/* ---------- classifiche ---------- */
+const rid = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function pickRanking(e){
+  if(!CLS.length){ const c = { id: rid(), name: 'I miei dischi preferiti', size: 10, items: [e.id] }; CLS.push(c); saveC(); toast('Nuova classifica creata'); location.hash = '#classifica/' + c.id; return; }
+  const names = CLS.map((c, i)=>`${i + 1}. ${c.name}`).join('\n');
+  const a = prompt(`In quale classifica? Scrivi il numero, oppure il nome di una nuova:\n${names}`); if(!a) return;
+  let c = CLS[parseInt(a, 10) - 1]; if(!c || !/^\d+$/.test(a.trim())){ c = { id: rid(), name: a.trim(), size: 10, items: [] }; CLS.push(c); }
+  if(!c.items.includes(e.id)) c.items.push(e.id); saveC(); toast(`Aggiunto a "${c.name}"`);
+}
+function csvRows(text){ const first = text.split(/\r?\n/)[0] || '', sep = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',', rows = []; let r = [], c = '', q = false;
+  for(let i = 0; i < text.length; i++){ const ch = text[i]; if(q){ if(ch === '"'){ if(text[i + 1] === '"'){ c += '"'; i++; } else q = false; } else c += ch; } else if(ch === '"') q = true; else if(ch === sep){ r.push(c); c = ''; } else if(ch === '\n' || ch === '\r'){ if(ch === '\r' && text[i + 1] === '\n') i++; r.push(c); rows.push(r); r = []; c = ''; } else c += ch; }
+  if(c || r.length){ r.push(c); rows.push(r); } return rows.filter(x=>x.some(y=>y.trim())); }
+function csvToLines(t){
+  t = String(t || '').replace(/^\uFEFF/, ''); const first = t.split(/\r?\n/)[0] || ''; if(!/[,;]/.test(first)) return t;
+  const rows = csvRows(t); if(rows.length < 2) return t; const h = rows[0].map(x=>norm(x)), f = re => h.findIndex(x=>re.test(x));
+  const ti = f(/^(album|title|titolo|disco|record)$/), ai = f(/^(artist|artista|artists|band|performer)$/), ri = f(/^(rank|pos|posizione|n|numero)$/), yi = f(/^(year|anno|years)$/);
+  if(ti < 0) return t;
+  return rows.slice(1).map(r=>{ const tt = (r[ti] || '').trim(); if(!tt) return ''; const rk = ri >= 0 ? (r[ri] || '').trim() : '', aa = ai >= 0 ? (r[ai] || '').trim() : '', yy = yi >= 0 ? (r[yi] || '').trim() : '';
+    return `${/^\d+$/.test(rk) ? rk + '. ' : ''}${tt}${aa ? ' - ' + aa : ''}${yy ? ' (' + yy + ')' : ''}`; }).filter(Boolean).join('\n');
+}
+function matchLine(line){
+  if(!TBYT){ TBYT = new Map(); for(const e of IDX){ const k = norm(e.t); if(!TBYT.has(k)) TBYT.set(k, []); TBYT.get(k).push(e); } }
+  let s = String(line).replace(/^\s*(?:#|n\.?\s*)?\d{1,4}\s*[.)\-:–]?\s+/i, '').replace(/["“”«»]/g, '').trim();
+  const ym = s.match(/\((\d{4})\)/), y = ym ? +ym[1] : 0; s = s.replace(/\(\d{4}\)/g, '').trim();
+  const parts = s.split(/\s+[–—-]\s+|\s+by\s+|\s*;\s*|\t/).map(x=>x.trim()).filter(Boolean), cand = [];
+  const tryTA = (t, a) => { const kt = norm(t), ka = a ? norm(a) : ''; for(const e of (TBYT.get(kt) || [])){ const ea = norm(e.a); if(!ka || ea === ka || ea.includes(ka) || ka.includes(ea)) cand.push({ e, sc: (ka ? (ea === ka ? 3 : 2) : 1) + (y && Math.abs(e.y - y) <= 1 ? 2 : 0) - e.r / 1e6 }); } };
+  if(parts.length >= 2){ tryTA(parts[0], parts.slice(1).join(' - ')); tryTA(parts.slice(1).join(' - '), parts[0]); }
+  if(!cand.length && /,/.test(s)){ const i = s.lastIndexOf(','); tryTA(s.slice(0, i), s.slice(i + 1)); tryTA(s.slice(i + 1), s.slice(0, i)); }
+  if(!cand.length) tryTA(s, '');
+  cand.sort((a, b)=>b.sc - a.sc); return cand[0] ? cand[0].e : null;
+}
+function importList(name, text){
+  const lines = csvToLines(text).split(/\r?\n/).map(x=>x.trim()).filter(x=>x && !/^(rank|pos)\b/i.test(x)), items = [], miss = [];
+  for(const l of lines){ const e = matchLine(l); if(e){ if(!items.includes(e.id)) items.push(e.id); } else miss.push(l.slice(0, 120)); }
+  const c = { id: rid(), name: name || 'Classifica importata', size: 0, items, miss, pin: true }; CLS.push(c); saveC(); return c;
+}
+function viewRankings(){
+  setNav('classifiche');
+  V().innerHTML = `<h1 class="pg">Classifiche</h1><p class="lead">Le tue top 5, top 10 o liste libere. Le classifiche "in Esplora" compaiono anche nella pagina iniziale.</p>`
+    + (CLS.length ? `<div class="rows">${CLS.map(c=>`<a class="fr" href="#classifica/${c.id}" style="grid-template-columns:minmax(0,1fr) auto"><span><b>${esc(c.name)}</b><span class="sub">${c.items.length} dischi${c.size ? ' · top ' + c.size : ''}${c.pin ? ' · in Esplora' : ''}</span></span><span class="badges"><span class="bd">Apri</span></span></a>`).join('')}</div>` : '')
+    + box('Nuova classifica', `<div class="filters"><input id="nn" type="text" placeholder="Nome, per esempio: I miei 10 dischi anni '90" style="flex:1; min-width:220px"><select id="ns"><option value="5">Top 5</option><option value="10" selected>Top 10</option><option value="20">Top 20</option><option value="0">Libera</option></select><button class="btn" id="nb">Crea</button></div>`)
+    + box('Importa un elenco', `<p class="note" style="margin-top:0">Incolla un elenco, una riga per disco ("1. Titolo - Artista (anno)", anche al contrario), oppure scegli un file CSV con colonne come Rank, Album, Artist, Year.</p><div class="filters"><input id="in" type="text" placeholder="Nome della classifica" style="flex:1; min-width:220px"><button class="btn" id="ifb" type="button">📁 Scegli un file</button><input id="iff" type="file" accept=".csv,.txt,text/csv,text/plain" class="hidden"></div><textarea id="it" placeholder="1. The Dark Side of the Moon - Pink Floyd (1973)"></textarea><p><button class="btn" id="ib">Importa</button></p>`);
+  $('nb').onclick = () => { const c = { id: rid(), name: $('nn').value.trim() || 'La mia classifica', size: +$('ns').value, items: [] }; CLS.push(c); saveC(); location.hash = '#classifica/' + c.id; };
+  $('ifb').onclick = () => $('iff').click();
+  $('iff').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if(!f) return; const r = new FileReader(); r.onload = () => { $('it').value = csvToLines(String(r.result || '')); if(!$('in').value.trim()) $('in').value = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '); toast('File letto'); }; r.readAsText(f); };
+  $('ib').onclick = () => { if(!$('it').value.trim()) return toast('Incolla un elenco o scegli un file'); const c = importList($('in').value.trim(), $('it').value); toast(`Riconosciuti ${c.items.length} dischi${c.miss.length ? `, ${c.miss.length} no` : ''}`); location.hash = '#classifica/' + c.id; };
+}
+function viewRanking(id){
+  const c = CLS.find(x=>x.id === id); if(!c) return viewRankings(); setNav('classifiche');
+  const items = c.items.map(i=>BY_ID.get(i)).filter(Boolean);
+  V().innerHTML = `<p class="note"><a class="lnk" href="#classifiche">← Classifiche</a></p><h1 class="pg">${esc(c.name)}</h1><p class="note">${items.length} dischi${c.size ? ' su ' + c.size : ''}</p>
+    <div class="acts"><button class="btn${c.pin ? ' on' : ''}" id="cp">${c.pin ? '✓ In Esplora' : 'Mostrala in Esplora'}</button><button class="btn" id="cf">Riempi con i tuoi voti più alti</button><button class="btn" id="cc">Copia come testo</button><button class="btn" id="cr">Rinomina</button><button class="btn" id="cd">Elimina</button></div>
+    <p class="lbl">Aggiungi un disco</p><input id="ca" type="search" placeholder="Cerca titolo o artista…" style="width:100%; max-width:520px"><div class="rows" id="cs"></div>
+    <div id="cl" style="margin-top:16px">${items.map((e, i)=>`<div class="rk"><span class="n">${i + 1}</span>${cover(e)}<a href="#album/${e.id}" style="min-width:0"><b>${esc(e.t)}</b><span class="sub note" style="display:block">${esc(e.a)}${e.y ? ', ' + e.y : ''}</span></a><span class="ctl"><button data-m="${i}" data-d="-1" aria-label="Su">↑</button><button data-m="${i}" data-d="1" aria-label="Giù">↓</button><button data-x="${i}" aria-label="Togli">✕</button></span></div>`).join('') || '<p class="lead">Ancora vuota: cerca un disco qui sopra.</p>'}</div>
+    ${c.miss && c.miss.length ? box('Non riconosciuti', `<p class="note" style="margin-top:0">Righe dell'elenco che non ho trovato nell'atlante:</p><ul>${c.miss.map(m=>`<li class="note">${esc(m)}</li>`).join('')}</ul><button class="btn sm" id="cmh">Ho finito, nascondi</button>`) : ''}`;
+  const redraw = () => viewRanking(id);
+  $('cp').onclick = () => { c.pin = !c.pin; saveC(); redraw(); };
+  $('cr').onclick = () => { const n = prompt('Nuovo nome', c.name); if(n && n.trim()){ c.name = n.trim(); saveC(); redraw(); } };
+  $('cd').onclick = () => { if(confirm(`Eliminare "${c.name}"?`)){ CLS = CLS.filter(x=>x.id !== id); saveC(); location.hash = '#classifiche'; } };
+  $('cc').onclick = () => { const t = `${c.name}\n` + items.map((e, i)=>`${i + 1}. ${e.t} - ${e.a}${e.y ? ' (' + e.y + ')' : ''}`).join('\n'); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast('Copiata'), ()=>toast('Copia non riuscita')); };
+  $('cf').onclick = () => { const mine = Object.keys(LISTE).filter(i=>LISTE[i].r && BY_ID.has(i) && !c.items.includes(i)).sort((a, b)=>LISTE[b].r - LISTE[a].r); const room = c.size ? Math.max(0, c.size - c.items.length) : mine.length; c.items.push(...mine.slice(0, room)); saveC(); redraw(); };
+  if($('cmh')) $('cmh').onclick = () => { c.miss = []; saveC(); redraw(); };
+  $('cl').querySelectorAll('[data-m]').forEach(b=>b.onclick = () => { const i = +b.dataset.m, j = i + +b.dataset.d; if(j < 0 || j >= c.items.length) return; [c.items[i], c.items[j]] = [c.items[j], c.items[i]]; saveC(); redraw(); });
+  $('cl').querySelectorAll('[data-x]').forEach(b=>b.onclick = () => { c.items.splice(+b.dataset.x, 1); saveC(); redraw(); });
+  $('ca').oninput = () => { const r = search($('ca').value).albs.slice(0, 8); $('cs').innerHTML = r.map(e=>`<a class="fr" href="javascript:void 0" data-add="${e.id}">${cover(e)}<span style="min-width:0"><b>${esc(e.t)}</b><span class="sub">${esc(e.a)}${e.y ? ', ' + e.y : ''}</span></span><span class="badges"><span class="bd">+ Aggiungi</span></span></a>`).join('');
+    $('cs').querySelectorAll('[data-add]').forEach(a=>a.onclick = ev => { ev.preventDefault(); if(c.size && c.items.length >= c.size) return toast(`La classifica è piena (top ${c.size})`); if(!c.items.includes(a.dataset.add)) c.items.push(a.dataset.add); saveC(); redraw(); }); };
+}
+
+/* ---------- strumenti ---------- */
+function viewTools(){
+  setNav('strumenti'); const rated = IDX.filter(e=>e.vc).length;
+  V().innerHTML = `<h1 class="pg">Strumenti</h1>`
+    + box('L\'indice', `<p style="margin-top:0">${fmtN(IDX.length)} dischi da MusicBrainz${META.built ? `, aggiornato il ${esc(fmtD(META.built))}` : ''}. Lo aggiorna ogni mese l'automazione dell'app dei dischi.</p><p class="note">${RATED ? `Voti degli utenti di MusicBrainz presenti per ${fmtN(rated)} dischi: da questi nascono Capolavori e Gemme.` : 'I voti degli utenti di MusicBrainz (per Capolavori e Gemme) arriveranno con il prossimo aggiornamento dell\'indice.'}</p><p class="note">${fmtN(OWN.size)} dischi della tua collezione riconosciuti nell'atlante. <a class="lnk" href="../">Apri la tua Discoteca</a></p>`)
+    + box('Come funziona', `<p style="margin-top:0"><b>✦ Capolavoro</b>: i dischi con il voto più alto degli utenti di MusicBrainz, pesato su quanti hanno votato (pochi voti contano poco). <b>💎 Gemme</b>: voto molto alto, ma lontani dai più famosi. <b>I più famosi</b>: quanto un disco è descritto, votato e collegato su MusicBrainz.</p><p class="note">Copertine: Cover Art Archive. Tracce: MusicBrainz. Storia e biografie: Wikipedia e Wikidata. I link di ascolto aprono la ricerca su Spotify, YouTube Music e Apple Music.</p>`)
+    + box('Le tue liste', `<p style="margin-top:0">Ascoltati, da ascoltare, preferiti, voti e classifiche restano su questo dispositivo. Scaricale per tenerle al sicuro o portarle su un altro.</p><div class="acts"><button class="btn" id="bk">⬇ Scarica le liste</button><button class="btn" id="rsb">⬆ Ripristina</button><input id="rsf" type="file" accept=".json,application/json" class="hidden"></div>`)
+    + `<p class="note">Atlante della Musica ${APP_VERSION}</p>`;
+  $('bk').onclick = () => { const data = JSON.stringify({ app: 'Atlante della Musica', liste: LISTE, classifiche: CLS }, null, 1), name = `atlante-musica-liste-${TODAY}.json`;
+    if(window.AtlanteAndroid && AtlanteAndroid.saveFile){ AtlanteAndroid.saveFile(name, 'application/json', data); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(), 1000); };
+  $('rsb').onclick = () => $('rsf').click();
+  $('rsf').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if(!f) return; const r = new FileReader();
+    r.onload = () => { try{ const d = JSON.parse(String(r.result)); if(!d || d.app !== 'Atlante della Musica') throw 0; let n = 0;
+      Object.entries(d.liste || {}).forEach(([id, v])=>{ if(!LISTE[id]){ LISTE[id] = v; n++; } }); (d.classifiche || []).forEach(c=>{ if(!CLS.some(x=>x.id === c.id)){ CLS.push(c); n++; } });
+      saveL(); saveC(); toast(`Ripristinate ${n} voci (le esistenti restano)`); }catch(e){ toast('Questo file non è un backup dell\'Atlante della Musica'); } }; r.readAsText(f); };
+}
+
+/* ---------- navigazione ---------- */
+function route(){
+  if(!IDX.length) return;
+  const h = decodeURIComponent(location.hash.replace(/^#/, '')), [k, ...rest] = h.split('/'), arg = rest.join('/');
+  window.scrollTo(0, 0);
+  if(k === 'album') return viewAlbum(arg);
+  if(k === 'artista') return viewArtist(arg);
+  if(k === 'artisti') return viewArtists();
+  if(k === 'lista') return viewList(arg);
+  if(k === 'genere') return viewList('genere', arg);
+  if(k === 'decennio') return viewList('decennio', arg);
+  if(k === 'cerca') return viewSearch(arg);
+  if(k === 'liste') return viewMine(arg);
+  if(k === 'classifiche') return viewRankings();
+  if(k === 'classifica') return viewRanking(arg);
+  if(k === 'strumenti') return viewTools();
+  return viewHome();
+}
+(async ()=>{
+  try{ await loadIndex(); }
+  catch(err){ V().innerHTML = `<h1 class="pg">Indice dei dischi non trovato</h1><p class="lead">L'Atlante legge l'indice dell'app dei dischi. Aprilo dal sito su GitHub Pages, nella cartella <b>atlante/</b> accanto alla tua Discoteca, e controlla di avere connessione la prima volta.</p>`; return; }
+  await loadOwn().catch(()=>{});
+  window.addEventListener('hashchange', route); route();
+  let tq; $('q').addEventListener('input', ()=>{ clearTimeout(tq); tq = setTimeout(()=>{ const v = $('q').value.trim(); if(v.length >= 2) location.hash = '#cerca/' + enc(v); else if(!v && /^#cerca\//.test(location.hash)) location.hash = '#'; }, 220); });
+  if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
