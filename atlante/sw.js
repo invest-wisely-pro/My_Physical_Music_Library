@@ -1,7 +1,7 @@
 /* Atlante della Musica — service worker (solo la cartella atlante/).
    App: rete prima, copia salvata se offline. Indice dei dischi (../index.html): rete prima, copia se offline.
    Copertine: conservate dopo la prima visione. MusicBrainz, Wikidata, Wikipedia: sempre dalla rete. */
-const VERSION = 'amus-1.2';
+const VERSION = 'amus-1.4';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'fonts/inter-var.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('amus-') && k !== VERSION && k !== 'amus-dati' && k !== 'amus-copertine').map(k => caches.delete(k)))).then(() => self.clients.claim())); });

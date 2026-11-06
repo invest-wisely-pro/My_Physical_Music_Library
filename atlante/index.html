@@ -135,7 +135,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.4';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -150,7 +150,7 @@ const durTot = ms => { const m = Math.round((ms || 0) / 60000); return m >= 60 ?
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove('on'), 2600); }
 
 /* ---------- l'indice ---------- */
-let HAS_CL = false, CAPO_TOP = [], CAPO_FAM = {}, FAM_ART = {}, REF = {}, ACCLAIM = [], HAS_W = false, IDX = [], BY_ID = new Map(), ARTISTS = new Map(), GENRES = [], META = { built: '', dump: '' }, RATED = false, MP = new Set(), GEMS = [], OWN = new Map(), TBYT = null;
+let HAS_SL = false, HAS_CL = false, CAPO_TOP = [], CAPO_FAM = {}, FAM_ART = {}, REF = {}, ACCLAIM = [], HAS_W = false, IDX = [], BY_ID = new Map(), ARTISTS = new Map(), GENRES = [], META = { built: '', dump: '' }, RATED = false, MP = new Set(), GEMS = [], OWN = new Map(), TBYT = null;
 const TYPES = { L: 'Dal vivo', C: 'Raccolta', S: 'Colonna sonora', R: 'Remix' };
 const typeLabel = e => e.ty[0] === 'E' ? 'EP' : (TYPES[e.ty[1]] || 'Album');
 const typeKey = e => e.ty[0] === 'E' ? 'ep' : e.ty.length > 1 ? e.ty[1] : 'studio';
@@ -174,8 +174,8 @@ function build(txt){
   for(const l of txt.split('\n')){
     if(!l) continue; const p = l.split('|'); if(p.length < 5 || p[0].length !== 32) continue;
     IDX.push({ id: p[0], t: p[1] || '', a: p[2] || '', y: parseInt(p[3], 10) || 0, ty: p[4] || 'A', g: p[5] ? p[5].split(', ').filter(Boolean) : [],
-      rv: parseInt(p[6], 10) || 0, vc: parseInt(p[7], 10) || 0, d: p[8] || '', w: p[9] === '1', cl: parseInt(p[10], 10) || 0, aw: parseInt(p[11], 10) || 0, r: IDX.length });   // w: voce su Wikipedia; cl: classifiche della critica; aw: premi
-    if(p.length >= 10) HAS_W = true; if(p[10]) HAS_CL = true;   // r: posizione per fama (l'indice è già in ordine)
+      rv: parseInt(p[6], 10) || 0, vc: parseInt(p[7], 10) || 0, d: p[8] || '', w: p[9] === '1', sl: parseInt(p[10], 10) || 0, cl: 0, aw: parseInt(p[11], 10) || 0, r: IDX.length });   // w: voce su Wikidata; sl: in quante Wikipedia ha un articolo; aw: premi
+    if(p.length >= 10) HAS_W = true;   // r: posizione per fama (l'indice è già in ordine)
   }
   BY_ID = new Map(IDX.map(e=>[e.id, e]));
   ARTISTS = new Map();
@@ -183,17 +183,21 @@ function build(txt){
   const mc = new Map(), fam = g => { if(!mc.has(g)){ const l = g.toLowerCase(); const k = MACRO_ORDER.find(k=>MACRO.find(x=>x[0] === k)[2].some(x=>l.includes(x))); mc.set(g, k || ''); } return mc.get(g); };
   for(const e of IDX){ e.m = ''; for(const g of e.g){ const f = fam(g); if(f){ e.m = f; break; } } }   // la famiglia del primo genere riconosciuto
   FAM_ART = {}; REF = {};
-  for(const A of ARTISTS.values()){ A.ff = {}; for(const e of A.list) if(e.m) A.ff[e.m] = (A.ff[e.m] || 0) + 1 / Math.sqrt(e.r + 25); A.hasW = A.list.some(e=>e.w); }
-  for(const [k] of MACRO){ FAM_ART[k] = [...ARTISTS.values()].filter(A=>A.ff[k] && !VARIOUS.test(A.name) && A.list.filter(e=>e.m === k).length >= 2 && (!HAS_W || A.hasW)).sort((a, b)=>b.ff[k] - a.ff[k]); REF[k] = FAM_ART[k].slice(0, 12); }
+  for(const A of ARTISTS.values()){ A.ff = {}; for(const e of A.list) if(e.m && !e.sus) A.ff[e.m] = (A.ff[e.m] || 0) + 1 / Math.sqrt(e.r + 25); A.hasW = A.list.some(e=>e.w); A.sus = A.list.every(e=>e.sus); }
+  for(const [k] of MACRO){ FAM_ART[k] = [...ARTISTS.values()].filter(A=>A.ff[k] && !A.sus && !VARIOUS.test(A.name) && A.list.filter(e=>e.m === k).length >= 2 && (!HAS_W || A.hasW)).sort((a, b)=>b.ff[k] - a.ff[k]); REF[k] = FAM_ART[k].slice(0, 12); }
   const gc = new Map(); for(const e of IDX) for(const g of e.g) gc.set(g, (gc.get(g) || 0) + 1);
   GENRES = [...gc.entries()].filter(x=>x[1] >= 30).sort((a, b)=>b[1] - a[1]).map(([g, n])=>({ g, n }));
   /* Capolavori. Segnali: classifiche della critica e premi (Wikidata), voti degli utenti di MusicBrainz (pochi e a volte
      manipolati: decine di 5 stelle a dischi sconosciuti). Difese provate sui dati veri: solo album in studio, medie perfette
      scartate, voto pesato prudente, solo tra i dischi più conosciuti, pochi dischi per artista; con la colonna "wiki", solo
      dischi con una voce su Wikipedia. Oltre ai più grandi in assoluto, i migliori di ogni genere. */
-  const trusted = e => e.ty === 'A' && !(e.rv >= 98) && (!HAS_W || e.w);
+  HAS_CL = false;   // le "classifiche della critica" su Wikidata si sono rivelate quasi vuote (47 dischi su 80.000): non si usano
+  HAS_SL = IDX.filter(e=>e.sl).length >= 5000;   // in quante Wikipedia del mondo il disco ha un articolo: difficilissimo da falsificare
+  // dischi sospetti: medie perfette con 5 o più voti (Kid Indigo, Mississippi Mass Choir…); con le lingue, anche dischi "famosissimi" senza un solo articolo
+  for(const e of IDX) e.sus = (e.rv >= 98 && e.vc >= 5) || (HAS_SL && e.r < 3000 && !e.sl && e.vc >= 8 && e.rv >= 85);
+  const trusted = e => e.ty === 'A' && !e.sus && !(e.rv >= 98) && (!HAS_W || e.w) && (!HAS_SL || e.sl >= 2);
   const base = IDX.filter(e=>e.vc >= 5 && e.rv && e.rv < 98), C = base.reduce((s, e)=>s + e.rv, 0) / Math.max(1, base.length);
-  const score = (e, m) => (e.vc && e.rv ? (e.vc * e.rv + m * C) / (e.vc + m) : C) + (HAS_CL ? 4 * Math.min(e.cl, 5) + Math.min(e.aw, 4) : 0);
+  const score = (e, m) => (e.vc && e.rv ? (e.vc * e.rv + m * C) / (e.vc + m) : C) + (HAS_CL ? 4 * Math.min(e.cl, 5) : 0) + Math.min(e.aw, 4) + (HAS_SL ? 2.2 * Math.log2(1 + Math.min(e.sl, 80)) : 0);   // premi e notorietà nel mondo: contano, ma non quanto il voto
   for(const e of IDX) e.br = score(e, 30);
   const capped = (l, cap, n) => { const per = new Map(), out = []; for(const e of l){ const k = norm(e.a), c = per.get(k) || 0; if(c >= cap) continue; per.set(k, c + 1); out.push(e); if(out.length >= n) break; } return out; };
   CAPO_TOP = capped(IDX.filter(e=>trusted(e) && e.r < 20000 && ((e.vc >= 15 && e.rv) || (HAS_CL && e.cl >= 2))).sort((a, b)=>b.br - a.br || a.r - b.r), 3, 150);
@@ -207,6 +211,7 @@ function build(txt){
   ACCLAIM = HAS_CL ? IDX.filter(e=>e.cl >= 3 && (!HAS_W || e.w) && e.ty[0] === 'A').sort((a, b)=>b.cl - a.cl || a.r - b.r).slice(0, 300) : [];
   TBYT = null;
 }
+
 const masterpieces = () => IDX.filter(e=>MP.has(e.id)).sort((a, b)=>b.br - a.br || a.r - b.r);
 const VARIOUS = /^(various artists|various|verschiedene interpreten|artistes divers|\[unknown\]|unknown artist|anonymous|\[no artist\]|traditional)$/i;
 const MACRO = [
@@ -226,7 +231,7 @@ const MACRO = [
 ];
 // per riconoscere il genere si guardano prima le famiglie più specifiche (il metal prima del rock, il punk prima del rock…)
 const MACRO_ORDER = ['metal', 'punk', 'hiphop', 'elettronica', 'jazz', 'soul', 'classica', 'blues', 'country', 'reggae', 'folk', 'pop', 'rock'];
-function novita(){ return IDX.filter(e=>e.y >= YEAR - 1 && (!e.d || e.d <= TODAY)).sort((a, b)=>(b.d || String(b.y)).localeCompare(a.d || String(a.y)) || a.r - b.r); }
+function novita(){ return IDX.filter(e=>e.y >= YEAR - 1 && !e.sus && (!e.d || e.d <= TODAY)).sort((a, b)=>(b.d || String(b.y)).localeCompare(a.d || String(a.y)) || a.r - b.r); }
 
 /* ---------- la tua discoteca: si legge, non si tocca ---------- */
 function readCollection(){
@@ -402,7 +407,7 @@ function setNav(k){ document.querySelectorAll('#nav a').forEach(a=>a.classList.t
 
 /* ---------- Esplora ---------- */
 const LISTS = {
-  famosi: ['I più famosi', () => IDX, 'Gli album più conosciuti, dal più famoso.'],
+  famosi: ['I più famosi', () => IDX.filter(e=>!e.sus), 'Gli album più conosciuti, dal più famoso.'],
   capolavori: ['✦ Capolavori', masterpieces, 'Gli album in studio più amati dagli utenti di MusicBrainz: servono molti voti alti, non pochi voti perfetti. Al massimo tre dischi per artista.'],
   acclamati: ['📰 Acclamati dalla critica', () => ACCLAIM, 'I dischi presenti nel maggior numero di classifiche e opere di riferimento della critica (come le liste di Rolling Stone o «1001 album da ascoltare»), secondo Wikidata.'],
   gemme: ['💎 Gemme nascoste', () => GEMS, 'Dischi amatissimi da chi li conosce, ma lontani dai più famosi.'],
@@ -421,7 +426,7 @@ function viewHome(){
     + (RATED ? strip('✦ Capolavori', masterpieces(), '#lista/capolavori') : '')
     + strip('📰 Acclamati dalla critica', ACCLAIM, '#lista/acclamati')
     + strip('🆕 Novità', novita(), '#lista/novita', 'Vedi tutte')
-    + strip('I più famosi', IDX, '#lista/famosi')
+    + strip('I più famosi', IDX.filter(e=>!e.sus), '#lista/famosi')
     + strip('✓ Nella tua discoteca', LISTS.discoteca[1](), '#lista/discoteca')
     + CLS.filter(c=>c.pin && c.items.length).map(c=>strip('🏆 ' + esc(c.name), c.items.map(id=>BY_ID.get(id)).filter(Boolean), '#classifica/' + c.id, 'Apri')).join('')
     + (scop.length ? `<h2 class="sec">Scopri</h2><div class="genres">${scop.map(([k, n])=>`<a class="genre" href="#lista/${k}"><b>${esc(LISTS[k][0])}</b><i>${fmtN(n)}</i></a>`).join('')}</div>` : '')
@@ -474,7 +479,7 @@ function viewAlbum(id){
       <p class="by"><a class="lnk" href="#artista/${enc(e.a)}">${esc(e.a)}</a></p>
       <p class="meta">${[e.d ? fmtD(e.d) : e.y || '', typeLabel(e)].filter(Boolean).join(' · ')}</p>
       ${e.g.length ? `<div class="chips">${e.g.map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div>` : ''}
-      <div class="badges" style="justify-content:flex-start; margin-top:12px">${MP.has(e.id) ? '<span class="bd mp">✦ Capolavoro</span>' : ''}${e.cl ? `<span class="bd">📰 In ${e.cl} ${e.cl === 1 ? 'classifica' : 'classifiche'} della critica</span>` : ''}${e.aw ? `<span class="bd">🏆 ${e.aw} ${e.aw === 1 ? 'premio' : 'premi'}</span>` : ''}${OWN.has(e.id) ? `<span class="bd own">✓ Nella tua discoteca${OWN.get(e.id) ? ' · ' + esc(OWN.get(e.id)) : ''}</span>` : ''}</div>
+      <div class="badges" style="justify-content:flex-start; margin-top:12px">${MP.has(e.id) ? '<span class="bd mp">✦ Capolavoro</span>' : ''}${HAS_CL && e.cl ? `<span class="bd">📰 In ${e.cl} ${e.cl === 1 ? 'classifica' : 'classifiche'} della critica</span>` : ''}${e.sl >= 2 ? `<span class="bd">🌍 Voce in ${e.sl} Wikipedia</span>` : ''}${e.aw ? `<span class="bd">🏆 ${e.aw} ${e.aw === 1 ? 'premio' : 'premi'}</span>` : ''}${OWN.has(e.id) ? `<span class="bd own">✓ Nella tua discoteca${OWN.get(e.id) ? ' · ' + esc(OWN.get(e.id)) : ''}</span>` : ''}</div>
       <p class="lbl">Ascolta su</p>${listen(e.a + ' ' + e.t)}
       <div class="acts"><button class="btn${L.s === 'v' ? ' on' : ''}" data-act="v">✓ Ascoltato</button><button class="btn${L.s === 'd' ? ' on' : ''}" data-act="d">+ Da ascoltare</button><button class="btn${L.f ? ' on' : ''}" data-act="f">♥ Preferito</button><button class="btn" data-act="rk">🏆 In classifica</button></div>
       <p class="lbl">Il tuo voto</p><div class="rate" id="rate">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=>`<button type="button" data-r="${n}" class="${L.r === n ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -540,6 +545,16 @@ async function albumOnline(e){
   }catch(err){}
   await dset(key, out); return out;
 }
+// una riga per persona e per ruolo: strumenti e brani insieme (prima: Jerry Hey tre volte, una per strumento)
+const INSTR_EXTRA = { 'wind instruments': 'fiati', 'foot stomps': 'battiti di piedi', 'handclaps': 'battimani', 'hand claps': 'battimani', 'brass': 'ottoni', 'strings': 'archi', 'string section': 'archi', 'horn section': 'sezione fiati', 'background vocals': 'cori', 'backing vocals': 'cori', 'lead vocals': 'voce solista', 'vocals': 'voce', 'other vocals': 'voce', 'choir vocals': 'coro', 'spoken vocals': 'voce recitante', 'drums (drum set)': 'batteria', 'drum machine': 'drum machine', 'programming': 'programmazione', 'whistle': 'fischio', 'keyboard': 'tastiere', 'keyboards': 'tastiere', 'electric guitar': 'chitarra elettrica', 'acoustic guitar': 'chitarra acustica', 'bass guitar': 'basso', 'electric bass guitar': 'basso elettrico', 'double bass': 'contrabbasso' };
+function itTerm(x){ const k = String(x || '').trim().toLowerCase(); return INSTR_EXTRA[k] || x; }
+function mergeCredits(list){
+  const m = new Map();
+  for(const c of list){ const k = c.r + '|' + (c.id || norm(c.n)); let x = m.get(k); if(!x){ x = { r: c.r, n: c.n, d: [], tr: [] }; m.set(k, x); }
+    String(c.d || '').split(/,\s*/).map(itTerm).filter(Boolean).forEach(t=>{ if(!x.d.includes(t)) x.d.push(t); }); (c.tr || []).forEach(t=>{ if(!x.tr.includes(t)) x.tr.push(t); }); }
+  const ord = t => { const m = String(t).match(/^([A-Za-z]*)(\d+)/); return m ? [m[1], +m[2]] : [String(t), 0]; };
+  return [...m.values()].map(x=>({ r: x.r, n: x.n, d: x.d.join(', '), tr: x.tr.sort((a, b)=>{ const A = ord(a), B = ord(b); return A[0] === B[0] ? A[1] - B[1] : A[0].localeCompare(B[0]); }) }));
+}
 const ROLES = [['perf', 'Musicisti'], ['prod', 'Produzione'], ['arr', 'Arrangiamenti'], ['eng', 'Tecnici del suono'], ['mix', 'Missaggio'], ['master', 'Masterizzazione'], ['art', 'Copertina e foto'], ['notes', 'Note di copertina'], ['other', 'Altri crediti']];
 function renderAlbumOnline(e, d){
   if(!d || d.offline){ $('online').innerHTML = '<p class="note">Tracce e notizie arriveranno con la rete.</p>'; return; }
@@ -560,12 +575,12 @@ function renderAlbumOnline(e, d){
   if(kv.length) P.push(box('Scheda', `<dl class="kv">${kv.map(([k, v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`));
   if(d.chart && d.chart.length) P.push(box('In classifica', `<dl class="kv">${d.chart.map(c=>`<dt><b style="color:var(--amber2)">${c.rk}°</b></dt><dd>${esc(c.n)}</dd>`).join('')}</dl><p class="note">La posizione più alta raggiunta.</p>`));
   if((d.aw && d.aw.length) || (d.nom && d.nom.length)) P.push(box('Premi', `${d.aw && d.aw.length ? `<p style="margin-top:0"><b>Vinti${d.awTotal > d.aw.length ? ` (${d.awTotal})` : ''}:</b> ${esc(d.aw.join(' · '))}</p>` : ''}${d.nom && d.nom.length ? `<p class="note"><b>Candidature${d.nomTotal > d.nom.length ? ` (${d.nomTotal})` : ''}:</b> ${esc(d.nom.join(' · '))}</p>` : ''}`));
-  if(d.lists && d.lists.length) P.push(box('Nelle grandi classifiche', `<ul style="margin:0; padding-left:18px">${d.lists.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`));
+  if(d.lists && d.lists.length) P.push(box('Citato in', `<ul style="margin:0; padding-left:18px">${d.lists.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`));
   if(d.tracks && d.tracks.length){ let disc = 0; const tot = d.tracks.reduce((s, t)=>s + (t.ms || 0), 0);
     P.push(box('Le tracce', `<ol class="tracks">${d.tracks.map(t=>{ let h = ''; if(t.d && t.d !== disc){ disc = t.d; h = `<li class="disc">Disco ${t.d}</li>`; } return h + `<li><span class="tn">${esc(t.n)}</span><span>${esc(t.t)}</span><span class="tl">${t.ms ? dur(t.ms) : ''}</span></li>`; }).join('')}</ol><p class="note">${d.tracks.length} tracce${tot ? ', ' + durTot(tot) : ''}${d.ed ? '. Edizione: ' + esc(d.ed) : ''}.</p>`)); }
-  if(d.credits && d.credits.length){ const nt = (d.tracks || []).length;
-    P.push(box('Crediti', ROLES.map(([r, t])=>{ const l = d.credits.filter(c=>c.r === r); if(!l.length) return '';
-      return `<p class="lbl" style="margin-top:10px">${t}</p><div>${l.map(c=>`<div style="padding:3px 0"><b style="font-weight:650">${esc(c.n)}</b>${c.d ? ` <span class="note">${esc(c.d)}</span>` : ''}${c.tr.length && c.tr.length < nt ? ` <span class="note">· brani ${esc(c.tr.slice(0, 8).join(', '))}${c.tr.length > 8 ? '…' : ''}</span>` : ''}</div>`).join('')}</div>`; }).join(''))); }
+  if(d.credits && d.credits.length){ const nt = (d.tracks || []).length, merged = mergeCredits(d.credits), people = new Set(merged.map(c=>c.n)).size;
+    P.push(`<details class="box"><summary style="padding:12px 16px; cursor:pointer; font-weight:700">Crediti <span class="note">${people} ${people === 1 ? 'persona' : 'persone'}</span></summary><div class="in">` + ROLES.map(([r, t])=>{ const l = merged.filter(c=>c.r === r); if(!l.length) return '';
+      return `<p class="lbl" style="margin-top:10px">${t}</p><div>${l.map(c=>`<div style="padding:3px 0"><b style="font-weight:650">${esc(c.n)}</b>${c.d ? ` <span class="note">${esc(c.d)}</span>` : ''}${c.tr.length && c.tr.length < nt ? ` <span class="note">· brani ${esc(c.tr.slice(0, 10).join(', '))}${c.tr.length > 10 ? '…' : ''}</span>` : ''}</div>`).join('')}</div>`; }).join('') + '</div></details>'); }
   if(d.eds && d.eds.length) P.push(`<details class="box"><summary style="padding:12px 16px; cursor:pointer; font-weight:700">Edizioni <span class="note">${fmtN(d.edTotal || d.eds.length)}</span></summary><div class="in" style="overflow-x:auto"><table style="border-collapse:collapse; width:100%; font-size:13.5px">${d.eds.slice(0, 120).map(x=>`<tr style="border-top:1px solid var(--line)"><td style="padding:6px 8px 6px 0; white-space:nowrap">${esc(x.date || '—')}</td><td style="padding:6px 8px">${esc(x.country)}</td><td style="padding:6px 8px">${esc(x.fmt)}</td><td style="padding:6px 8px">${esc(x.label)}</td><td style="padding:6px 0 6px 8px" class="note">${esc(x.catno)}</td></tr>`).join('')}</table></div></details>`);
   P.push(`<p class="note">Fonti: <a class="lnk" href="https://musicbrainz.org/release-group/${uuid(e.id)}" target="_blank" rel="noopener">MusicBrainz ↗</a>${d.qid ? ` · <a class="lnk" href="https://www.wikidata.org/wiki/${esc(d.qid)}" target="_blank" rel="noopener">Wikidata ↗</a>` : ''}</p>`);
   $('online').innerHTML = P.join('');

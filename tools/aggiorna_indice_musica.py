@@ -8,10 +8,10 @@ Scarica l'archivio JSON ufficiale dei "release group" (gli album) di MusicBrainz
 HTML dell'app (di solito index.html).
 
 Formato di ogni riga (dentro il blocco compresso):
-  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi|voto|voti|data|wiki|critica|premi
+  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi|voto|voti|data|wiki|lingue|premi
   voto: media degli utenti di MusicBrainz da 0 a 100 (vuoto se nessuno ha votato); voti: quanti; data: prima uscita (AAAA-MM-GG).
   wiki: 1 se il disco ha una voce su Wikipedia o Wikidata (difficile da falsificare, a differenza dei voti).
-  critica: in quante classifiche e opere di riferimento compare secondo Wikidata (P1343); premi: quanti ne ha vinti (P166).
+  lingue: in quante Wikipedia del mondo il disco ha un articolo (difficilissimo da falsificare); premi: quanti ne ha vinti (P166).
   Le ultime quattro colonne servono all'Atlante della Musica: l'app dei dischi legge solo le prime sei.
   tipo: A = album, E = EP, piu L (live) C (compilation) S (colonna sonora) R (remix)
 
@@ -141,11 +141,11 @@ def build(src, top):
 
 WD_ENDPOINTS = ['https://qlever.cs.uni-freiburg.de/api/wikidata', 'https://query.wikidata.org/sparql']
 WD_Q = {
-    'cl': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?s) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P1343 ?s . } GROUP BY ?mb',
+    'cl': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?mb (MAX(?sl) AS ?n) WHERE { ?a wdt:P436 ?mb ; wikibase:sitelinks ?sl . FILTER(?sl > 0) } GROUP BY ?mb',
     'aw': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?x) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P166 ?x . } GROUP BY ?mb',
 }
 def wd_counts(key, local=None):
-    """Da Wikidata: per ogni disco (codice MusicBrainz), quante classifiche della critica o quanti premi."""
+    """Da Wikidata: per ogni disco (codice MusicBrainz), in quante Wikipedia ha un articolo, o quanti premi ha vinto."""
     if local:
         p = os.path.join(local, f'q-{key}.json')
         if not os.path.exists(p): raise RuntimeError('risposta di prova mancante')
@@ -171,9 +171,9 @@ def wd_counts(key, local=None):
     return out
 
 def add_wikidata(text, local=None):
-    """Aggiunge due colonne: classifiche della critica e premi. Se Wikidata non risponde, restano vuote."""
+    """Aggiunge due colonne: lingue di Wikipedia e premi. Se Wikidata non risponde, restano vuote."""
     extra = {}
-    for key, label in (('cl', 'classifiche della critica'), ('aw', 'premi')):
+    for key, label in (('cl', 'voci su Wikipedia'), ('aw', 'premi')):
         try:
             extra[key] = wd_counts(key, local); log(f'Wikidata, {label}: {len(extra[key]):,} dischi')
         except Exception as e:
@@ -183,7 +183,7 @@ def add_wikidata(text, local=None):
         if not l: continue
         p = l.split('|'); rows.append('|'.join(p + [str(extra['cl'].get(p[0], '')), str(extra['aw'].get(p[0], ''))]))
     hit = sum(1 for r in rows if r.split('|')[10])
-    log(f'Dischi dell\'indice in almeno una classifica della critica: {hit:,}')
+    log(f'Dischi dell\'indice con un articolo in almeno una Wikipedia: {hit:,}')
     return '\n'.join(rows) + '\n'
 
 def embed(html_path, text, built, dump):

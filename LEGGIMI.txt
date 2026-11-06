@@ -117,10 +117,11 @@ Capolavori: i voti di MusicBrainz sono pochi e a volte manipolati (decine di vot
 Per questo valgono solo album in studio con almeno 15 voti, medie perfette scartate, voto pesato prudente, tra i
 20.000 dischi più conosciuti, al massimo 3 per artista e, quando l'indice lo dice, con una voce su Wikipedia.
 Gemme: stesso principio, tra il 3.000° e il 15.000° posto per fama, al massimo 2 per artista.
-Classifiche della critica e premi: lo script chiede a Wikidata in quante classifiche e opere di riferimento compare
-ogni disco (come le liste di Rolling Stone o «1001 album da ascoltare») e quanti premi ha vinto. Le classifiche non
-vengono copiate: si usa solo la presenza, come segnale. Danno la sezione "Acclamati dalla critica" e rendono i
-Capolavori più equilibrati tra i generi. Se Wikidata non risponde, l'indice si aggiorna lo stesso.
+Notorietà nel mondo e premi: lo script chiede a Wikidata in quante Wikipedia del mondo ogni disco ha un articolo
+(difficilissimo da falsificare: i grandi classici ne hanno decine, i dischi auto-promossi nessuno) e quanti premi ha
+vinto. Servono a escludere i dischi manipolati e a premiare quelli davvero noti. (La presenza nelle "classifiche della
+critica" su Wikidata si è rivelata quasi vuota, 47 dischi su 80.000, e non viene usata.) I dischi con medie perfette
+da 5 o più voti sono considerati sospetti e non compaiono tra i più famosi, le novità e i capolavori.
 Generi: 13 grandi famiglie (Rock, Pop, Metal, Punk e new wave, Hip hop, Elettronica, Soul R&B e funk, Jazz, Folk e
 cantautori, Blues, Country, Reggae e world, Classica), ognuna con artisti di riferimento, capolavori e sottogeneri.
 Artisti: biografia completa, formazione con ruoli e anni (MusicBrainz), influenze, premi, link ufficiali, chi ha
