@@ -1,4 +1,5 @@
-# Aggiorna ogni mese l'indice offline della Music Library dall'archivio ufficiale di MusicBrainz.
+# Aggiorna ogni mese l'indice offline della Music Library e dell'Atlante della Musica:
+# archivio ufficiale di MusicBrainz (dischi, voti, data, voce su Wikipedia) più Wikidata (classifiche della critica, premi).
 # Si può anche avviare a mano: scheda "Actions" → "Aggiorna indice musica" → "Run workflow".
 name: Aggiorna indice musica
 on:
@@ -7,16 +8,19 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: indice-musica      # mai due aggiornamenti insieme
+  cancel-in-progress: false
 jobs:
   aggiorna:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Ricostruisci l'indice dall'archivio MusicBrainz di oggi
+      - name: Ricostruisci l'indice (MusicBrainz e Wikidata)
         run: python tools/aggiorna_indice_musica.py index.html
       - name: Pubblica se è cambiato
         run: |
@@ -25,4 +29,5 @@ jobs:
           if git diff --quiet -- index.html; then echo "Nessuna novità"; exit 0; fi
           git add index.html
           git commit -m "Indice musica aggiornato al $(date +%Y-%m-%d)"
+          git pull --rebase
           git push
