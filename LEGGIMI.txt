@@ -112,5 +112,17 @@ dal browser del telefono ("Aggiungi a schermata Home" / "Installa").
   - La tua collezione viene solo letta, mai modificata.
 Capolavori, Gemme e date complete arrivano con il prossimo aggiornamento dell'indice (il 5 del mese,
 oppure Actions -> "Aggiorna indice musica" -> Run workflow): lo script ora salva anche i voti degli
-utenti di MusicBrainz. Fino ad allora l'Atlante funziona con la fama dei dischi.
+utenti di MusicBrainz e se il disco ha una voce su Wikipedia o Wikidata. Fino ad allora l'Atlante funziona con la fama.
+Capolavori: i voti di MusicBrainz sono pochi e a volte manipolati (decine di voti da 5 stelle a dischi sconosciuti).
+Per questo valgono solo album in studio con almeno 15 voti, medie perfette scartate, voto pesato prudente, tra i
+20.000 dischi più conosciuti, al massimo 3 per artista e, quando l'indice lo dice, con una voce su Wikipedia.
+Gemme: stesso principio, tra il 3.000° e il 15.000° posto per fama, al massimo 2 per artista.
+Classifiche della critica e premi: lo script chiede a Wikidata in quante classifiche e opere di riferimento compare
+ogni disco (come le liste di Rolling Stone o «1001 album da ascoltare») e quanti premi ha vinto. Le classifiche non
+vengono copiate: si usa solo la presenza, come segnale. Danno la sezione "Acclamati dalla critica" e rendono i
+Capolavori più equilibrati tra i generi. Se Wikidata non risponde, l'indice si aggiorna lo stesso.
+Generi: 13 grandi famiglie (Rock, Pop, Metal, Punk e new wave, Hip hop, Elettronica, Soul R&B e funk, Jazz, Folk e
+cantautori, Blues, Country, Reggae e world, Classica), ognuna con artisti di riferimento, capolavori e sottogeneri.
+Artisti: biografia completa, formazione con ruoli e anni (MusicBrainz), influenze, premi, link ufficiali, chi ha
+lavorato con loro in studio (produttori, tecnici del suono, missaggio, masterizzazione) e artisti simili.
 Il service worker della Discoteca ignora la cartella atlante/, che ha il suo.

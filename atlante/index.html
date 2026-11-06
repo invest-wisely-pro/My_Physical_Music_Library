@@ -135,7 +135,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.2';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -150,7 +150,7 @@ const durTot = ms => { const m = Math.round((ms || 0) / 60000); return m >= 60 ?
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove('on'), 2600); }
 
 /* ---------- l'indice ---------- */
-let IDX = [], BY_ID = new Map(), ARTISTS = new Map(), GENRES = [], META = { built: '', dump: '' }, RATED = false, MP = new Set(), GEMS = [], OWN = new Map(), TBYT = null;
+let HAS_CL = false, CAPO_TOP = [], CAPO_FAM = {}, FAM_ART = {}, REF = {}, ACCLAIM = [], HAS_W = false, IDX = [], BY_ID = new Map(), ARTISTS = new Map(), GENRES = [], META = { built: '', dump: '' }, RATED = false, MP = new Set(), GEMS = [], OWN = new Map(), TBYT = null;
 const TYPES = { L: 'Dal vivo', C: 'Raccolta', S: 'Colonna sonora', R: 'Remix' };
 const typeLabel = e => e.ty[0] === 'E' ? 'EP' : (TYPES[e.ty[1]] || 'Album');
 const typeKey = e => e.ty[0] === 'E' ? 'ep' : e.ty.length > 1 ? e.ty[1] : 'studio';
@@ -170,30 +170,62 @@ async function loadIndex(){
   build(await gunzipB64(m[2].trim()));
 }
 function build(txt){
-  IDX = [];
+  IDX = []; HAS_W = false; HAS_CL = false;
   for(const l of txt.split('\n')){
     if(!l) continue; const p = l.split('|'); if(p.length < 5 || p[0].length !== 32) continue;
     IDX.push({ id: p[0], t: p[1] || '', a: p[2] || '', y: parseInt(p[3], 10) || 0, ty: p[4] || 'A', g: p[5] ? p[5].split(', ').filter(Boolean) : [],
-      rv: parseInt(p[6], 10) || 0, vc: parseInt(p[7], 10) || 0, d: p[8] || '', r: IDX.length });   // r: posizione per fama (l'indice è già in ordine)
+      rv: parseInt(p[6], 10) || 0, vc: parseInt(p[7], 10) || 0, d: p[8] || '', w: p[9] === '1', cl: parseInt(p[10], 10) || 0, aw: parseInt(p[11], 10) || 0, r: IDX.length });   // w: voce su Wikipedia; cl: classifiche della critica; aw: premi
+    if(p.length >= 10) HAS_W = true; if(p[10]) HAS_CL = true;   // r: posizione per fama (l'indice è già in ordine)
   }
   BY_ID = new Map(IDX.map(e=>[e.id, e]));
   ARTISTS = new Map();
   for(const e of IDX){ const k = norm(e.a); if(!k) continue; let A = ARTISTS.get(k); if(!A){ A = { name: e.a, k, list: [], fame: 0 }; ARTISTS.set(k, A); } A.list.push(e); A.fame += 1 / Math.sqrt(e.r + 25); }
+  const mc = new Map(), fam = g => { if(!mc.has(g)){ const l = g.toLowerCase(); const k = MACRO_ORDER.find(k=>MACRO.find(x=>x[0] === k)[2].some(x=>l.includes(x))); mc.set(g, k || ''); } return mc.get(g); };
+  for(const e of IDX){ e.m = ''; for(const g of e.g){ const f = fam(g); if(f){ e.m = f; break; } } }   // la famiglia del primo genere riconosciuto
+  FAM_ART = {}; REF = {};
+  for(const A of ARTISTS.values()){ A.ff = {}; for(const e of A.list) if(e.m) A.ff[e.m] = (A.ff[e.m] || 0) + 1 / Math.sqrt(e.r + 25); A.hasW = A.list.some(e=>e.w); }
+  for(const [k] of MACRO){ FAM_ART[k] = [...ARTISTS.values()].filter(A=>A.ff[k] && !VARIOUS.test(A.name) && A.list.filter(e=>e.m === k).length >= 2 && (!HAS_W || A.hasW)).sort((a, b)=>b.ff[k] - a.ff[k]); REF[k] = FAM_ART[k].slice(0, 12); }
   const gc = new Map(); for(const e of IDX) for(const g of e.g) gc.set(g, (gc.get(g) || 0) + 1);
   GENRES = [...gc.entries()].filter(x=>x[1] >= 30).sort((a, b)=>b[1] - a[1]).map(([g, n])=>({ g, n }));
-  // capolavori: il voto degli utenti di MusicBrainz, pesato su quanti hanno votato. Soglie che si adattano ai dati.
-  const rated = IDX.filter(e=>e.vc >= 3 && e.rv); RATED = rated.length >= 200; MP = new Set(); GEMS = [];
-  if(RATED){
-    const C = rated.reduce((s, e)=>s + e.rv, 0) / rated.length, m = 8;
-    for(const e of IDX) e.br = e.vc ? (e.vc * e.rv + m * C) / (e.vc + m) : 0;
-    const pool = IDX.filter(e=>e.vc >= 10).sort((a, b)=>b.br - a.br || a.r - b.r);
-    MP = new Set(pool.slice(0, Math.min(400, Math.max(20, Math.round(pool.length * 0.06)))).map(e=>e.id));
-    const cut = pool.length ? pool[Math.min(pool.length - 1, Math.round(pool.length * 0.2))].br : 1e9;
-    GEMS = IDX.filter(e=>e.vc >= 5 && e.br >= cut && e.r >= 6000 && !MP.has(e.id)).sort((a, b)=>b.br - a.br).slice(0, 300);   // una scoperta, non un mucchio
-  }
+  /* Capolavori. Segnali: classifiche della critica e premi (Wikidata), voti degli utenti di MusicBrainz (pochi e a volte
+     manipolati: decine di 5 stelle a dischi sconosciuti). Difese provate sui dati veri: solo album in studio, medie perfette
+     scartate, voto pesato prudente, solo tra i dischi più conosciuti, pochi dischi per artista; con la colonna "wiki", solo
+     dischi con una voce su Wikipedia. Oltre ai più grandi in assoluto, i migliori di ogni genere. */
+  const trusted = e => e.ty === 'A' && !(e.rv >= 98) && (!HAS_W || e.w);
+  const base = IDX.filter(e=>e.vc >= 5 && e.rv && e.rv < 98), C = base.reduce((s, e)=>s + e.rv, 0) / Math.max(1, base.length);
+  const score = (e, m) => (e.vc && e.rv ? (e.vc * e.rv + m * C) / (e.vc + m) : C) + (HAS_CL ? 4 * Math.min(e.cl, 5) + Math.min(e.aw, 4) : 0);
+  for(const e of IDX) e.br = score(e, 30);
+  const capped = (l, cap, n) => { const per = new Map(), out = []; for(const e of l){ const k = norm(e.a), c = per.get(k) || 0; if(c >= cap) continue; per.set(k, c + 1); out.push(e); if(out.length >= n) break; } return out; };
+  CAPO_TOP = capped(IDX.filter(e=>trusted(e) && e.r < 20000 && ((e.vc >= 15 && e.rv) || (HAS_CL && e.cl >= 2))).sort((a, b)=>b.br - a.br || a.r - b.r), 3, 150);
+  CAPO_FAM = {};
+  for(const [k] of MACRO){ const l = IDX.filter(e=>e.m === k && trusted(e) && e.r < 25000 && ((e.vc >= 8 && e.rv) || (HAS_CL && e.cl >= 1))); l.forEach(e=>{ e.bf = score(e, 20); });
+    CAPO_FAM[k] = capped(l.sort((a, b)=>b.bf - a.bf || a.r - b.r), 2, 16); }
+  MP = new Set(CAPO_TOP.map(e=>e.id)); Object.values(CAPO_FAM).forEach(l=>l.forEach(e=>MP.add(e.id)));
+  RATED = MP.size >= 20;
+  const bg = e => (e.vc * e.rv + 10 * C) / (e.vc + 10);   // gemme: meno votate, peso più leggero; tra il 3.000° e il 15.000° posto
+  GEMS = capped(IDX.filter(e=>e.vc >= 8 && e.rv && e.r >= 3000 && e.r < 15000 && trusted(e) && !MP.has(e.id) && bg(e) >= 85).sort((a, b)=>bg(b) - bg(a) || a.r - b.r), 2, 150);
+  ACCLAIM = HAS_CL ? IDX.filter(e=>e.cl >= 3 && (!HAS_W || e.w) && e.ty[0] === 'A').sort((a, b)=>b.cl - a.cl || a.r - b.r).slice(0, 300) : [];
   TBYT = null;
 }
 const masterpieces = () => IDX.filter(e=>MP.has(e.id)).sort((a, b)=>b.br - a.br || a.r - b.r);
+const VARIOUS = /^(various artists|various|verschiedene interpreten|artistes divers|\[unknown\]|unknown artist|anonymous|\[no artist\]|traditional)$/i;
+const MACRO = [
+  ['rock', 'Rock', ['rock', 'grunge', 'britpop', 'shoegaze', 'psychedelia', 'krautrock', 'post-rock', 'math rock']],
+  ['pop', 'Pop', ['pop', 'k-pop', 'j-pop', 'city pop', 'europop', 'italo', 'schlager']],
+  ['metal', 'Metal', ['metal', 'grindcore', 'djent']],
+  ['punk', 'Punk e new wave', ['punk', 'new wave', 'emo', 'post-hardcore', 'hardcore', 'no wave', 'ska']],
+  ['hiphop', 'Hip hop', ['hip hop', 'hip-hop', 'rap', 'trap', 'boom bap', 'grime', 'drill']],
+  ['elettronica', 'Elettronica', ['electronic', 'electronica', 'techno', 'house', 'ambient', 'idm', 'trance', 'drum and bass', 'dubstep', 'trip hop', 'downtempo', 'synthwave', 'electro', 'edm', 'breakbeat', 'big beat', 'industrial', 'glitch', 'chillout', 'jungle', 'vaporwave']],
+  ['soul', 'Soul, R&B e funk', ['soul', 'r&b', 'rhythm and blues', 'funk', 'disco', 'motown', 'gospel', 'quiet storm', 'new jack swing']],
+  ['jazz', 'Jazz', ['jazz', 'bebop', 'hard bop', 'swing', 'big band', 'bossa nova']],
+  ['folk', 'Folk e cantautori', ['folk', 'singer-songwriter', 'cantautor', 'chanson']],
+  ['blues', 'Blues', ['blues']],
+  ['country', 'Country e americana', ['country', 'bluegrass', 'americana']],
+  ['reggae', 'Reggae e world', ['reggae', 'dub', 'dancehall', 'afrobeat', 'world', 'latin', 'salsa', 'flamenco', 'mpb', 'samba', 'cumbia', 'tango', 'fado', 'highlife']],
+  ['classica', 'Classica', ['classical', 'baroque', 'opera', 'romantic', 'orchestral', 'minimalism', 'chamber music', 'symphon', 'choral']],
+];
+// per riconoscere il genere si guardano prima le famiglie più specifiche (il metal prima del rock, il punk prima del rock…)
+const MACRO_ORDER = ['metal', 'punk', 'hiphop', 'elettronica', 'jazz', 'soul', 'classica', 'blues', 'country', 'reggae', 'folk', 'pop', 'rock'];
 function novita(){ return IDX.filter(e=>e.y >= YEAR - 1 && (!e.d || e.d <= TODAY)).sort((a, b)=>(b.d || String(b.y)).localeCompare(a.d || String(a.y)) || a.r - b.r); }
 
 /* ---------- la tua discoteca: si legge, non si tocca ---------- */
@@ -251,6 +283,102 @@ async function wikiSummary(sl){
   return null;
 }
 
+/* ---------- aiuti copiati dall'app dei dischi (collaudati sui dati veri) ---------- */
+const LANG = 'it';
+const EN_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const claimVals = (e, p) => (((e || {}).claims || {})[p] || []).filter(c=>c.mainsnak && c.mainsnak.datavalue).map(c=>c.mainsnak.datavalue.value);
+const qualVals = (st, p) => ((st.qualifiers || {})[p] || []).filter(q=>q.datavalue).map(q=>q.datavalue.value);
+const INSTR_IT = { 'guitar':'chitarra', 'electric guitar':'chitarra elettrica', 'acoustic guitar':'chitarra acustica', 'bass guitar':'basso', 'bass':'basso', 'electric bass guitar':'basso elettrico',
+  'drums (drum set)':'batteria', 'drums':'batteria', 'piano':'pianoforte', 'keyboard':'tastiere', 'organ':'organo', 'synthesizer':'sintetizzatore', 'lead vocals':'voce solista', 'background vocals':'cori',
+  'vocal':'voce', 'violin':'violino', 'cello':'violoncello', 'viola':'viola', 'saxophone':'sassofono', 'tenor saxophone':'sax tenore', 'alto saxophone':'sax alto', 'trumpet':'tromba', 'trombone':'trombone',
+  'percussion':'percussioni', 'harmonica':'armonica', 'flute':'flauto', 'double bass':'contrabbasso', 'strings':'archi', 'horn':'corno', 'clarinet':'clarinetto' };
+const wdTime = v => v && v.time ? v.time.replace(/^\+/, '').slice(0, v.precision >= 11 ? 10 : v.precision === 10 ? 7 : 4) : '';
+function wtTemplate(text, nameRe){
+  const m = new RegExp('\\{\\{\\s*(?:' + nameRe + ')\\s*[|\\n}]', 'i').exec(text); if(!m) return '';
+  let depth = 0;
+  for(let k = m.index; k < text.length - 1; k++){
+    if(text[k] === '{' && text[k + 1] === '{'){ depth++; k++; }
+    else if(text[k] === '}' && text[k + 1] === '}'){ depth--; k++; if(depth === 0) return text.slice(m.index + 2, k - 1); }
+  }
+  return '';
+}
+function wtParams(inner){
+  const parts = []; let cur = '', d1 = 0, d2 = 0;
+  for(let k = 0; k < inner.length; k++){
+    const two = inner.substr(k, 2);
+    if(two === '{{'){ d1++; cur += two; k++; continue; } if(two === '}}'){ d1--; cur += two; k++; continue; }
+    if(two === '[['){ d2++; cur += two; k++; continue; } if(two === ']]'){ d2--; cur += two; k++; continue; }
+    if(inner[k] === '|' && !d1 && !d2){ parts.push(cur); cur = ''; continue; }
+    cur += inner[k];
+  }
+  parts.push(cur);
+  const o = {}; parts.slice(1).forEach(p=>{ const i = p.indexOf('='); if(i > 0) o[p.slice(0, i).trim().toLowerCase()] = p.slice(i + 1).trim(); });
+  return o;
+}
+function wtClean(v){
+  v = String(v || '').replace(/<!--[\s\S]*?-->/g, '').replace(/<ref[^>]*\/>/gi, '').replace(/<ref[\s\S]*?<\/ref>/gi, '').replace(/<br\s*\/?>/gi, ', ');
+  v = v.replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, '$1');   // i link prima dei modelli: [[Pagina|Nome]] contiene un '|' che spezzerebbe le liste
+  for(let i = 0; i < 12 && /\{\{[^{}]*\}\}/.test(v); i++){
+    v = v.replace(/\{\{([^{}]*)\}\}/g, (all, inner)=>{
+      const p = inner.split('|').map(x=>x.trim()), n = (p[0] || '').toLowerCase();
+      if(/^(start date|release date|end date|film date)/.test(n)){ const nums = p.slice(1).filter(x=>/^\d+$/.test(x)); return nums.length ? nums.slice(0, 3).map((x, i)=>i ? x.padStart(2, '0') : x).join('-') : ''; }
+      if(n === 'duration'){ const g = k => (p.find(x=>x.startsWith(k + '=')) || '').split('=')[1]; const m = g('m'), s = g('s'); return m ? m + ':' + String(s || '0').padStart(2, '0') : ''; }
+      if(/^(hlist|flatlist|plainlist|ubl|unbulleted list|flat list|plain list|nowrap|small)/.test(n)) return p.slice(1).filter(x=>!/^\w+\s*=/.test(x)).join(', ');
+      return '';
+    });
+  }
+  v = v.replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, '$1').replace(/'{2,}/g, '').replace(/^\s*\*\s*/gm, ', ').replace(/\n+/g, ' ');
+  return v.replace(/\s*,\s*(,\s*)+/g, ', ').replace(/^[\s,]+|[\s,]+$/g, '').replace(/\s+/g, ' ').trim();
+}
+function ibDateText(v){
+  const s = wtClean(v); if(!s) return '';
+  if(LANG !== 'it') return s;
+  return s.replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g, m=>new Date(2000, EN_MONTHS.indexOf(m.toLowerCase()), 15).toLocaleDateString('it-IT', { month: 'long' }));
+}
+const ibList = v => wtClean(v).split(/\s*,\s*/).filter(Boolean);
+function roleOf(type){
+  type = String(type || '').toLowerCase();
+  if(type === 'producer' || type === 'executive producer' || type === 'co-producer') return 'prod';
+  if(type === 'mix' || type === 'mixer' || type === 'mix-dj') return 'mix';
+  if(type === 'mastering') return 'master';
+  if(/engineer|recording|audio|sound|balance|editor|programming/.test(type)) return 'eng';
+  if(/instrument|vocal|performer|performing orchestra|conductor|chorus master|concertmaster/.test(type)) return 'perf';
+  if(/arranger|orchestrator/.test(type)) return 'arr';
+  if(/design|photograph|illustration|art direction|artwork|graphic/.test(type)) return 'art';
+  if(/liner notes/.test(type)) return 'notes';
+  return 'other';
+}
+function roleDetail(rel){
+  const at = (rel.attributes || []).filter(a=>!/^(additional|assistant|co|executive|guest|solo|minor)$/i.test(a));
+  let d = at.join(', ');
+  if(!d && /vocal/i.test(rel.type)) d = 'vocal';
+  if(LANG === 'it') d = d.split(', ').map(x=>INSTR_IT[x.toLowerCase()] || x).join(', ');
+  if(/assistant/i.test((rel.attributes || []).join(' '))) d = (d ? d + ', ' : '') + (LANG === 'en' ? 'assistant' : 'assistente');
+  return d;
+}
+function relCredits(rels, trackNo, into){
+  (rels || []).forEach(rel=>{
+    if(rel['target-type'] !== 'artist' || !rel.artist) return;
+    const r = roleOf(rel.type), det = roleDetail(rel), key = r + '|' + (rel.artist.id || norm(rel.artist.name)) + '|' + det;
+    let c = into.get(key);
+    if(!c){ c = { r, d: det, n: rel.artist.name, id: rel.artist.id || '', tr: [] }; into.set(key, c); }
+    if(trackNo && !c.tr.includes(trackNo)) c.tr.push(trackNo);
+  });
+}
+function mediaSummary(media){ const m = new Map(); (media || []).forEach(x=>{ const f = x.format || '?'; m.set(f, (m.get(f) || 0) + 1); }); return [...m.entries()].map(([f, n])=>(n > 1 ? n + '× ' : '') + f).join(' + '); }
+async function wikiInfobox(title){
+  const j = await jget(`https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&prop=wikitext&section=0&redirects=1&format=json&origin=*`);
+  const text = j && j.parse && j.parse.wikitext && (j.parse.wikitext['*'] || j.parse.wikitext);
+  if(!text || typeof text !== 'string') return null;
+  const box = wtTemplate(text, 'Infobox album'); if(!box) return null;
+  const p = wtParams(box), out = {};
+  if(p.recorded) out.recorded = ibDateText(p.recorded);
+  if(p.studio) out.studio = ibList(p.studio).slice(0, 4);
+  const sg = wtTemplate(text, 'Singles');
+  if(sg){ const q = wtParams(sg); out.singles = Object.keys(q).filter(k=>/^single\d+$/.test(k)).sort((a, b)=>parseInt(a.slice(6), 10) - parseInt(b.slice(6), 10)).map(k=>wtClean(q[k]).replace(/^"|"$/g, '')).filter(Boolean).slice(0, 8); }
+  return out;
+}
+
 /* ---------- pezzi di pagina ---------- */
 const PAL = ['#3B2F4F', '#2F4A4F', '#4F3A2F', '#2F3F4F', '#4A2F3A', '#35452F', '#4F4A2F', '#2F4F40', '#40304F', '#4F2F2F'];
 const tileBg = e => PAL[parseInt(e.id.slice(0, 2), 16) % PAL.length];
@@ -275,7 +403,8 @@ function setNav(k){ document.querySelectorAll('#nav a').forEach(a=>a.classList.t
 /* ---------- Esplora ---------- */
 const LISTS = {
   famosi: ['I più famosi', () => IDX, 'Gli album più conosciuti, dal più famoso.'],
-  capolavori: ['✦ Capolavori', masterpieces, 'I dischi con il voto più alto degli utenti di MusicBrainz, contando anche quanti hanno votato.'],
+  capolavori: ['✦ Capolavori', masterpieces, 'Gli album in studio più amati dagli utenti di MusicBrainz: servono molti voti alti, non pochi voti perfetti. Al massimo tre dischi per artista.'],
+  acclamati: ['📰 Acclamati dalla critica', () => ACCLAIM, 'I dischi presenti nel maggior numero di classifiche e opere di riferimento della critica (come le liste di Rolling Stone o «1001 album da ascoltare»), secondo Wikidata.'],
   gemme: ['💎 Gemme nascoste', () => GEMS, 'Dischi amatissimi da chi li conosce, ma lontani dai più famosi.'],
   novita: ['🆕 Novità', novita, 'Le uscite di quest\'anno e dello scorso, dalla più recente.'],
   live: ['🎤 Dal vivo', () => IDX.filter(e=>e.ty.includes('L')), 'I concerti diventati dischi.'],
@@ -287,22 +416,23 @@ const LISTS = {
 function decades(){ const c = new Map(); for(const e of IDX){ if(e.y < 1940 || e.y > YEAR) continue; const d = Math.floor(e.y / 10) * 10; c.set(d, (c.get(d) || 0) + 1); } return [...c.entries()].filter(x=>x[1] >= 30).sort((a, b)=>a[0] - b[0]).map(([d, n])=>({ d, n })); }
 function viewHome(){
   setNav(''); const dec = decades(), mx = Math.max(1, ...dec.map(x=>x.n));
-  const scop = ['capolavori', 'gemme', 'live', 'colonne', 'raccolte', 'ep'].map(k=>[k, LISTS[k][1]().length]).filter(x=>x[1] > 0);
+  const scop = ['capolavori', 'acclamati', 'gemme', 'live', 'colonne', 'raccolte', 'ep'].map(k=>[k, LISTS[k][1]().length]).filter(x=>x[1] > 0);
   V().innerHTML = `<div class="ruler">${dec.map(x=>`<a href="#decennio/${x.d}"><b>${decLabel(x.d)}</b><i style="height:${Math.round(6 + 34 * x.n / mx)}px"></i><small>${fmtN(x.n)}</small></a>`).join('')}</div>`
     + (RATED ? strip('✦ Capolavori', masterpieces(), '#lista/capolavori') : '')
+    + strip('📰 Acclamati dalla critica', ACCLAIM, '#lista/acclamati')
     + strip('🆕 Novità', novita(), '#lista/novita', 'Vedi tutte')
     + strip('I più famosi', IDX, '#lista/famosi')
     + strip('✓ Nella tua discoteca', LISTS.discoteca[1](), '#lista/discoteca')
     + CLS.filter(c=>c.pin && c.items.length).map(c=>strip('🏆 ' + esc(c.name), c.items.map(id=>BY_ID.get(id)).filter(Boolean), '#classifica/' + c.id, 'Apri')).join('')
     + (scop.length ? `<h2 class="sec">Scopri</h2><div class="genres">${scop.map(([k, n])=>`<a class="genre" href="#lista/${k}"><b>${esc(LISTS[k][0])}</b><i>${fmtN(n)}</i></a>`).join('')}</div>` : '')
-    + `<h2 class="sec">Per genere</h2><div class="genres">${GENRES.slice(0, 24).map(x=>`<a class="genre" href="#genere/${enc(x.g)}"><b>${esc(cap(x.g))}</b><i>${fmtN(x.n)}</i></a>`).join('')}</div>`
+    + `<h2 class="sec">Generi<a class="more" href="#generi">Tutti i sottogeneri</a></h2><div class="genres">${MACRO.map(([k, name])=>[k, name, IDX.filter(e=>e.m === k).length]).filter(x=>x[2]).map(([k, name, c])=>`<a class="genre" href="#famiglia/${k}"><b>${esc(name)}</b><i>${fmtN(c)}</i></a>`).join('')}</div>`
     + `<p class="note" style="margin-top:26px">${fmtN(IDX.length)} dischi da MusicBrainz${META.built ? ', indice del ' + esc(fmtD(META.built)) : ''}. <a class="lnk" href="../">Apri la tua Discoteca</a></p>`;
 }
 function viewList(k, arg){
   let title, base, lead;
   if(k === 'genere'){ title = cap(arg); base = IDX.filter(e=>e.g.includes(arg)); lead = 'Dal più famoso.'; }
   else if(k === 'decennio'){ const d = parseInt(arg, 10) || 1970; title = `Gli anni ${decLabel(d)}`; base = IDX.filter(e=>e.y >= d && e.y < d + 10); lead = 'Dal più famoso.'; }
-  else { const L = LISTS[k]; if(!L) return viewHome(); title = L[0]; base = L[1](); lead = L[2]; }
+  else { if(k === 'capolavori') return viewMasterpieces(); const L = LISTS[k]; if(!L) return viewHome(); title = L[0]; base = L[1](); lead = L[2]; }
   setNav(k === 'capolavori' ? 'capolavori' : '');
   if(k === 'capolavori' && !RATED) lead = 'I capolavori arrivano con il prossimo aggiornamento dell\'indice dei dischi, che porterà anche i voti degli utenti di MusicBrainz. Intanto trovi i dischi più famosi in Esplora.';
   const st = { g: '', d: '', t: '', n: 60 }, dec = decades();
@@ -344,7 +474,7 @@ function viewAlbum(id){
       <p class="by"><a class="lnk" href="#artista/${enc(e.a)}">${esc(e.a)}</a></p>
       <p class="meta">${[e.d ? fmtD(e.d) : e.y || '', typeLabel(e)].filter(Boolean).join(' · ')}</p>
       ${e.g.length ? `<div class="chips">${e.g.map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div>` : ''}
-      <div class="badges" style="justify-content:flex-start; margin-top:12px">${MP.has(e.id) ? '<span class="bd mp">✦ Capolavoro</span>' : ''}${OWN.has(e.id) ? `<span class="bd own">✓ Nella tua discoteca${OWN.get(e.id) ? ' · ' + esc(OWN.get(e.id)) : ''}</span>` : ''}</div>
+      <div class="badges" style="justify-content:flex-start; margin-top:12px">${MP.has(e.id) ? '<span class="bd mp">✦ Capolavoro</span>' : ''}${e.cl ? `<span class="bd">📰 In ${e.cl} ${e.cl === 1 ? 'classifica' : 'classifiche'} della critica</span>` : ''}${e.aw ? `<span class="bd">🏆 ${e.aw} ${e.aw === 1 ? 'premio' : 'premi'}</span>` : ''}${OWN.has(e.id) ? `<span class="bd own">✓ Nella tua discoteca${OWN.get(e.id) ? ' · ' + esc(OWN.get(e.id)) : ''}</span>` : ''}</div>
       <p class="lbl">Ascolta su</p>${listen(e.a + ' ' + e.t)}
       <div class="acts"><button class="btn${L.s === 'v' ? ' on' : ''}" data-act="v">✓ Ascoltato</button><button class="btn${L.s === 'd' ? ' on' : ''}" data-act="d">+ Da ascoltare</button><button class="btn${L.f ? ' on' : ''}" data-act="f">♥ Preferito</button><button class="btn" data-act="rk">🏆 In classifica</button></div>
       <p class="lbl">Il tuo voto</p><div class="rate" id="rate">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=>`<button type="button" data-r="${n}" class="${L.r === n ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -363,75 +493,157 @@ function viewAlbum(id){
   albumOnline(e).then(d=>{ if(location.hash.replace(/^#/, '') === 'album/' + e.id && $('online')) renderAlbumOnline(e, d); }).catch(()=>{ if($('online')) $('online').innerHTML = ''; });
 }
 async function albumOnline(e){
-  const key = 'alb1:' + e.id, c = await dget(key); if(c && Date.now() - c.at < 30 * 864e5) return c;
+  const key = 'alb2:' + e.id, c = await dget(key); if(c && Date.now() - c.at < 30 * 864e5) return c;
   if(navigator.onLine === false) return c || { offline: 1 };
-  const out = { at: Date.now() };
+  const out = { at: Date.now() }, rg = uuid(e.id);
+  // 1) tutte le edizioni (fino a 200) e la scelta di quella di riferimento
+  let rels = [];
+  try{ for(let off = 0; off < 200; off += 100){ const j = await mbget(`release?release-group=${rg}&inc=labels+media&limit=100&offset=${off}&fmt=json`); rels = rels.concat(j.releases || []); out.edTotal = j['release-count'] || rels.length; if(off + 100 >= (j['release-count'] || 0)) break; } }catch(err){}
+  out.eds = rels.map(r=>{ const li = r['label-info'] || [], lab = li.find(x=>x.label); return { date: r.date || '', country: r.country || '', fmt: mediaSummary(r.media), label: lab ? lab.label.name : '', catno: (li.find(x=>x['catalog-number']) || {})['catalog-number'] || '' }; }).sort((a, b)=>(a.date || '9999').localeCompare(b.date || '9999'));
+  const off = rels.filter(r=>(r.status || 'Official') === 'Official' && (r.media || []).some(m=>(m['track-count'] || (m.tracks || []).length) > 0)).sort((a, b)=>(a.date || '9999').localeCompare(b.date || '9999'));
+  const best = off.find(r=>/^(XW|XE|US|GB|IT)$/.test(r.country || '')) || off[0] || rels[0];
+  // 2) l'edizione di riferimento: tracce, crediti, studi e il collegamento a Wikidata, con una richiesta sola
+  if(best && best.id){ try{
+    const j = await mbget(`release/${best.id}?inc=artist-credits+labels+recordings+release-groups+media+url-rels+artist-rels+place-rels+recording-level-rels+release-group-level-rels&fmt=json`);
+    out.ed = [j.date || '', j.country || '', mediaSummary(j.media)].filter(Boolean).join(', ');
+    const cred = new Map(), pl = { rec: new Set(), mix: new Set(), master: new Set() };
+    const takePl = rr => (rr || []).forEach(r=>{ if(r['target-type'] !== 'place' || !r.place) return; const ty = String(r.type || '').toLowerCase(); const k = /master/.test(ty) ? 'master' : /mix/.test(ty) ? 'mix' : /record/.test(ty) ? 'rec' : ''; if(k) pl[k].add(r.place.name); });
+    relCredits(j.relations, 0, cred); takePl(j.relations); out.tracks = [];
+    (j.media || []).forEach((m, mi)=>(m.tracks || []).forEach(t=>{ const n = t.number || String(t.position); out.tracks.push({ d: j.media.length > 1 ? mi + 1 : 0, n, t: t.title, ms: t.length || (t.recording && t.recording.length) || 0 }); relCredits(t.recording && t.recording.relations, n, cred); takePl(t.recording && t.recording.relations); }));
+    out.credits = [...cred.values()].slice(0, 150);
+    out.places = { rec: [...pl.rec].slice(0, 4), mix: [...pl.mix].slice(0, 3), master: [...pl.master].slice(0, 3) };
+    const li = (j['label-info'] || []).find(x=>x.label); if(li) out.label = li.label.name;
+    const w = ((j['release-group'] && j['release-group'].relations) || []).find(x=>x.type === 'wikidata' && x.url); if(w) out.qid = (w.url.resource.match(/Q\d+/) || [])[0] || '';
+  }catch(err){} }
+  // 3) Wikidata e Wikipedia: classifiche, premi, liste, scheda
   try{
-    const j = await mbget(`release?release-group=${uuid(e.id)}&inc=recordings+media&status=official&limit=25&fmt=json`);
-    const rels = (j.releases || []).filter(r=>(r.media || []).some(m=>(m.tracks || []).length)).sort((a, b)=>(a.date || '9999').localeCompare(b.date || '9999'));
-    const best = rels.find(r=>/^(XW|XE|US|GB|IT)$/.test(r.country || '')) || rels[0];
-    if(best){ out.tracks = []; best.media.forEach((m, mi)=>(m.tracks || []).forEach(t=>out.tracks.push({ d: best.media.length > 1 ? mi + 1 : 0, n: t.number || t.position, t: t.title, ms: t.length || (t.recording && t.recording.length) || 0 })));
-      out.ed = [best.date || '', best.country || ''].filter(Boolean).join(', '); }
-  }catch(err){}
-  try{
-    const qid = await wdByMB('P436', uuid(e.id));
-    if(qid){
-      out.qid = qid;
-      const ent = (await wdEntities([qid], 'claims|sitelinks'))[qid] || {};
-      const P = { label: claimIds(ent, 'P264'), prod: claimIds(ent, 'P162'), aw: claimIds(ent, 'P166'), prev: claimIds(ent, 'P155').slice(0, 1), next: claimIds(ent, 'P156').slice(0, 1) };
-      const refs = [...new Set(Object.values(P).flat())], labs = refs.length ? await wdEntities(refs, 'labels|claims') : {};
-      const ref = q => { const x = labs[q]; const mb = x && claimVal(x, 'P436'); const inIdx = mb && BY_ID.get(String(mb).replace(/-/g, '')); return { l: wdLabel(x), id: inIdx ? inIdx.id : '' }; };
-      out.f = {}; Object.entries(P).forEach(([k, l])=>{ out.f[k] = l.map(ref).filter(x=>x.l); });
+    if(!out.qid) out.qid = await wdByMB('P436', rg);
+    if(out.qid){
+      const ent = (await wdEntities([out.qid], 'claims|sitelinks'))[out.qid] || {}, ids = p => claimVals(ent, p).map(v=>v && v.id).filter(Boolean);
+      const charts = new Map();
+      (((ent.claims || {}).P2291) || []).forEach(st=>{ const cq = st.mainsnak && st.mainsnak.datavalue && st.mainsnak.datavalue.value && st.mainsnak.datavalue.value.id; if(!cq) return;
+        const rk = qualVals(st, 'P1352').map(v=>Math.abs(parseFloat(v.amount))).filter(n=>n > 0).sort((x, y)=>x - y)[0]; if(!rk) return; if(!charts.has(cq) || rk < charts.get(cq)) charts.set(cq, rk); });
+      const chartIds = [...charts.entries()].sort((x, y)=>x[1] - y[1]).slice(0, 8);
+      const series = ((ent.claims || {}).P179) || [], fromSeries = p => { for(const st of series){ const v = qualVals(st, p)[0]; if(v && v.id) return v.id; } return ''; };
+      const R = { charts: chartIds.map(x=>x[0]), rec: ids('P483').slice(0, 3), aw: ids('P166').slice(0, 12), nom: ids('P1411').slice(0, 12), lists: ids('P1343').slice(0, 10), lang: ids('P407').slice(0, 2), prod: ids('P162').slice(0, 6), label: ids('P264').slice(0, 3), prev: [ids('P155')[0] || fromSeries('P155')].filter(Boolean), next: [ids('P156')[0] || fromSeries('P156')].filter(Boolean) };
+      const all = [...new Set(Object.values(R).flat())], labs = all.length ? await wdEntities(all, 'labels|claims') : {};
+      const L = q => wdLabel(labs[q]);
+      ['rec', 'aw', 'nom', 'lists', 'lang', 'prod', 'label'].forEach(k=>{ out[k] = R[k].map(L).filter(Boolean); });
+      out.awTotal = ids('P166').length; out.nomTotal = ids('P1411').length;
+      out.chart = chartIds.map(([q, rk])=>({ n: L(q), rk })).filter(x=>x.n);
+      const link = q => { const x = labs[q]; if(!x) return null; const mb = claimVals(x, 'P436')[0], hit = mb && BY_ID.get(String(mb).replace(/-/g, '')); return { l: wdLabel(x), id: hit ? hit.id : '' }; };
+      out.prev = R.prev.map(link).filter(Boolean); out.next = R.next.map(link).filter(Boolean);
+      const du = claimVals(ent, 'P2047')[0]; if(du && du.amount){ const n = Math.abs(parseFloat(du.amount)), u = String(du.unit || ''); const mn = /Q7727$/.test(u) ? n : /Q25235$/.test(u) ? n * 60 : n / 60; if(mn > 0) out.min = Math.round(mn); }
+      if(ent.sitelinks && ent.sitelinks.enwiki){ try{ out.ib = await wikiInfobox(ent.sitelinks.enwiki.title); }catch(err){} }
       out.wiki = await wikiSummary(ent.sitelinks);
     }
   }catch(err){}
   await dset(key, out); return out;
 }
+const ROLES = [['perf', 'Musicisti'], ['prod', 'Produzione'], ['arr', 'Arrangiamenti'], ['eng', 'Tecnici del suono'], ['mix', 'Missaggio'], ['master', 'Masterizzazione'], ['art', 'Copertina e foto'], ['notes', 'Note di copertina'], ['other', 'Altri crediti']];
 function renderAlbumOnline(e, d){
   if(!d || d.offline){ $('online').innerHTML = '<p class="note">Tracce e notizie arriveranno con la rete.</p>'; return; }
-  const parts = [];
-  if(d.tracks && d.tracks.length){
-    const tot = d.tracks.reduce((s, t)=>s + (t.ms || 0), 0); let disc = 0;
-    parts.push(box('Le tracce', `<ol class="tracks">${d.tracks.map(t=>{ let h = ''; if(t.d && t.d !== disc){ disc = t.d; h = `<li class="disc">Disco ${t.d}</li>`; } return h + `<li><span class="tn">${esc(t.n)}</span><span>${esc(t.t)}</span><span class="tl">${t.ms ? dur(t.ms) : ''}</span></li>`; }).join('')}</ol><p class="note">${d.tracks.length} tracce${tot ? ', ' + durTot(tot) : ''}${d.ed ? '. Edizione: ' + esc(d.ed) : ''}.</p>`));
-  }
-  if(d.wiki) parts.push(box('La storia', `<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(d.wiki.text)}</p><p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
-  const f = d.f || {}, kv = [], names = l => l.map(x=>x.id ? `<a class="lnk" href="#album/${x.id}">${esc(x.l)}</a>` : esc(x.l)).join(', ');
-  if(f.label && f.label.length) kv.push(['Etichetta', names(f.label)]);
-  if(f.prod && f.prod.length) kv.push(['Produzione', names(f.prod)]);
-  if(f.aw && f.aw.length) kv.push(['Premi', names(f.aw.slice(0, 6))]);
-  if(f.prev && f.prev.length) kv.push(['Disco precedente', names(f.prev)]);
-  if(f.next && f.next.length) kv.push(['Disco successivo', names(f.next)]);
-  if(kv.length) parts.push(box('Scheda', `<dl class="kv">${kv.map(([k, v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`));
-  parts.push(`<p class="note">Fonti: <a class="lnk" href="https://musicbrainz.org/release-group/${uuid(e.id)}" target="_blank" rel="noopener">MusicBrainz ↗</a>${d.qid ? ` · <a class="lnk" href="https://www.wikidata.org/wiki/${esc(d.qid)}" target="_blank" rel="noopener">Wikidata ↗</a>` : ''}</p>`);
-  $('online').innerHTML = parts.join('');
+  const P = [], names = l => (l || []).map(x=>x.id ? `<a class="lnk" href="#album/${x.id}">${esc(x.l)}</a>` : esc(x.l)).join(', ');
+  if(d.wiki) P.push(box('La storia', `<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(d.wiki.text)}</p><p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
+  const kv = [], pl = d.places || {}, ib = d.ib || {};
+  if(ib.recorded) kv.push(['Registrato', esc(ib.recorded)]);
+  const studios = [...new Set([...(pl.rec || []), ...(ib.studio || []), ...(d.rec || [])])].slice(0, 5); if(studios.length) kv.push(['Studi', esc(studios.join(', '))]);
+  if(pl.mix && pl.mix.length) kv.push(['Missato a', esc(pl.mix.join(', '))]);
+  if(pl.master && pl.master.length) kv.push(['Masterizzato a', esc(pl.master.join(', '))]);
+  if(d.prod && d.prod.length) kv.push(['Produzione', esc(d.prod.join(', '))]);
+  const lab = (d.label && d.label.length ? d.label.join(', ') : '') || (d.label && typeof d.label === 'string' ? d.label : ''); if(lab) kv.push(['Etichetta', esc(lab)]);
+  if(d.min) kv.push(['Durata', `${d.min} minuti`]); else if(d.tracks && d.tracks.length){ const tot = d.tracks.reduce((s, t)=>s + (t.ms || 0), 0); if(tot) kv.push(['Durata', durTot(tot)]); }
+  if(d.lang && d.lang.length) kv.push(['Lingua', esc(d.lang.join(', '))]);
+  if(ib.singles && ib.singles.length) kv.push(['Singoli', esc(ib.singles.join(' · '))]);
+  if(d.prev && d.prev.length) kv.push(['Disco precedente', names(d.prev)]);
+  if(d.next && d.next.length) kv.push(['Disco successivo', names(d.next)]);
+  if(kv.length) P.push(box('Scheda', `<dl class="kv">${kv.map(([k, v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`));
+  if(d.chart && d.chart.length) P.push(box('In classifica', `<dl class="kv">${d.chart.map(c=>`<dt><b style="color:var(--amber2)">${c.rk}°</b></dt><dd>${esc(c.n)}</dd>`).join('')}</dl><p class="note">La posizione più alta raggiunta.</p>`));
+  if((d.aw && d.aw.length) || (d.nom && d.nom.length)) P.push(box('Premi', `${d.aw && d.aw.length ? `<p style="margin-top:0"><b>Vinti${d.awTotal > d.aw.length ? ` (${d.awTotal})` : ''}:</b> ${esc(d.aw.join(' · '))}</p>` : ''}${d.nom && d.nom.length ? `<p class="note"><b>Candidature${d.nomTotal > d.nom.length ? ` (${d.nomTotal})` : ''}:</b> ${esc(d.nom.join(' · '))}</p>` : ''}`));
+  if(d.lists && d.lists.length) P.push(box('Nelle grandi classifiche', `<ul style="margin:0; padding-left:18px">${d.lists.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`));
+  if(d.tracks && d.tracks.length){ let disc = 0; const tot = d.tracks.reduce((s, t)=>s + (t.ms || 0), 0);
+    P.push(box('Le tracce', `<ol class="tracks">${d.tracks.map(t=>{ let h = ''; if(t.d && t.d !== disc){ disc = t.d; h = `<li class="disc">Disco ${t.d}</li>`; } return h + `<li><span class="tn">${esc(t.n)}</span><span>${esc(t.t)}</span><span class="tl">${t.ms ? dur(t.ms) : ''}</span></li>`; }).join('')}</ol><p class="note">${d.tracks.length} tracce${tot ? ', ' + durTot(tot) : ''}${d.ed ? '. Edizione: ' + esc(d.ed) : ''}.</p>`)); }
+  if(d.credits && d.credits.length){ const nt = (d.tracks || []).length;
+    P.push(box('Crediti', ROLES.map(([r, t])=>{ const l = d.credits.filter(c=>c.r === r); if(!l.length) return '';
+      return `<p class="lbl" style="margin-top:10px">${t}</p><div>${l.map(c=>`<div style="padding:3px 0"><b style="font-weight:650">${esc(c.n)}</b>${c.d ? ` <span class="note">${esc(c.d)}</span>` : ''}${c.tr.length && c.tr.length < nt ? ` <span class="note">· brani ${esc(c.tr.slice(0, 8).join(', '))}${c.tr.length > 8 ? '…' : ''}</span>` : ''}</div>`).join('')}</div>`; }).join(''))); }
+  if(d.eds && d.eds.length) P.push(`<details class="box"><summary style="padding:12px 16px; cursor:pointer; font-weight:700">Edizioni <span class="note">${fmtN(d.edTotal || d.eds.length)}</span></summary><div class="in" style="overflow-x:auto"><table style="border-collapse:collapse; width:100%; font-size:13.5px">${d.eds.slice(0, 120).map(x=>`<tr style="border-top:1px solid var(--line)"><td style="padding:6px 8px 6px 0; white-space:nowrap">${esc(x.date || '—')}</td><td style="padding:6px 8px">${esc(x.country)}</td><td style="padding:6px 8px">${esc(x.fmt)}</td><td style="padding:6px 8px">${esc(x.label)}</td><td style="padding:6px 0 6px 8px" class="note">${esc(x.catno)}</td></tr>`).join('')}</table></div></details>`);
+  P.push(`<p class="note">Fonti: <a class="lnk" href="https://musicbrainz.org/release-group/${uuid(e.id)}" target="_blank" rel="noopener">MusicBrainz ↗</a>${d.qid ? ` · <a class="lnk" href="https://www.wikidata.org/wiki/${esc(d.qid)}" target="_blank" rel="noopener">Wikidata ↗</a>` : ''}</p>`);
+  $('online').innerHTML = P.join('');
 }
 
-/* ---------- artista ---------- */
+/* ---------- famiglie di generi, artisti di riferimento ---------- */
 function topGenres(l, n){ const c = new Map(); l.forEach(e=>e.g.forEach(g=>c.set(g, (c.get(g) || 0) + 1))); return [...c.entries()].sort((a, b)=>b[1] - a[1]).slice(0, n).map(x=>x[0]); }
-function viewArtist(name){
-  const A = ARTISTS.get(norm(name)); if(!A) return viewHome(); setNav('');
-  const L = A.list, ys = L.map(e=>e.y).filter(Boolean), byYear = l => l.slice().sort((a, b)=>(a.y || 9999) - (b.y || 9999));
-  const sec = (t, l) => l.length ? `<h2 class="sec">${t}<span class="cnt">${l.length}</span></h2><div class="grid">${byYear(l).map(card).join('')}</div>` : '';
-  V().innerHTML = `<div class="art-head"><div class="ph-art" id="artPh">${esc(initials(A.name))}</div><div style="min-width:0">
-      <h1 class="pg">${esc(A.name)}</h1><p class="meta">${L.length} ${L.length === 1 ? 'disco' : 'dischi'} nell'atlante${ys.length ? `, dal ${Math.min(...ys)} al ${Math.max(...ys)}` : ''}</p>
-      <div class="chips">${topGenres(L, 4).map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div><div id="artFacts" class="note" style="margin-top:10px"></div></div></div>
-    <p class="lbl">Ascolta su</p>${listen(A.name)}<div id="artBio"></div>
-    ${L.length > 6 ? strip('I più famosi', L, '', '') : ''}
-    ${sec('Album in studio', L.filter(e=>e.ty === 'A'))}${sec('EP', L.filter(e=>e.ty[0] === 'E'))}${sec('Dal vivo', L.filter(e=>e.ty.includes('L')))}${sec('Raccolte', L.filter(e=>e.ty.includes('C')))}${sec('Colonne sonore', L.filter(e=>e.ty.includes('S')))}${sec('Altro', L.filter(e=>e.ty[0] === 'A' && /R/.test(e.ty) && !/[LCS]/.test(e.ty)))}`;
-  artistOnline(A).then(d=>{
-    if(location.hash.replace(/^#/, '') !== 'artista/' + enc(A.name) && decodeURIComponent(location.hash.replace(/^#/, '')) !== 'artista/' + A.name) return;
-    if(!d || !d.qid) return;
-    if(d.img && $('artPh')) $('artPh').insertAdjacentHTML('beforeend', `<img src="${esc(d.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`);
-    if(d.facts && $('artFacts')) $('artFacts').textContent = d.facts;
-    if(d.wiki && $('artBio')) $('artBio').innerHTML = box('Biografia', `<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(d.wiki.text)}</p><p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`);
-  }).catch(()=>{});
+const famName = k => (MACRO.find(x=>x[0] === k) || [k, k])[1];
+function artistFamily(A){ const c = new Map(); A.list.forEach(e=>{ if(e.m) c.set(e.m, (c.get(e.m) || 0) + 1); }); return [...c.entries()].sort((a, b)=>b[1] - a[1]).map(x=>x[0])[0] || ''; }
+function similarArtists(A){
+  const fam = artistFamily(A), mine = new Set(topGenres(A.list, 8)); if(!fam || !mine.size) return [];
+  return (FAM_ART[fam] || []).slice(0, 500).filter(B=>B !== A).map(B=>{ const t = topGenres(B.list, 8); let s = 0; t.forEach((g, i)=>{ if(mine.has(g)) s += 8 - i; }); return { B, s: s * (1 + Math.log10(1 + B.ff[fam])) }; })
+    .filter(x=>x.s > 6).sort((a, b)=>b.s - a.s).slice(0, 10).map(x=>x.B);
+}
+function viewFamily(k){
+  const F = MACRO.find(x=>x[0] === k); if(!F) return viewHome(); setNav('');
+  const list = IDX.filter(e=>e.m === k), refs = REF[k] || [], capo = CAPO_FAM[k] || [];
+  const acc = HAS_CL ? list.filter(e=>e.cl >= 2 && (!HAS_W || e.w)).sort((a, b)=>b.cl - a.cl || a.r - b.r) : [];
+  let n = 48;
+  V().innerHTML = `<p class="note"><a class="lnk" href="#generi">← Tutti i generi</a></p><h1 class="pg">${esc(F[1])}</h1><p class="lead">${fmtN(list.length)} dischi nell'atlante.</p>`
+    + (refs.length ? `<h2 class="sec">Artisti di riferimento<a class="more" href="#artisti/${k}">Tutti</a></h2><div class="people">${refs.map(personCard).join('')}</div>` : '')
+    + strip('✦ Capolavori del genere', capo, '', '') + strip('📰 Acclamati dalla critica', acc, '', '')
+    + `<h2 class="sec">Sottogeneri</h2><div class="chips">${topGenres(list, 28).map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div>`
+    + `<h2 class="sec">I più famosi</h2><div class="grid" id="lst"></div><p style="margin-top:18px"><button class="btn" id="moreBtn">Mostra altri</button></p>`;
+  const draw = () => { $('lst').innerHTML = list.slice(0, n).map(card).join(''); $('moreBtn').classList.toggle('hidden', list.length <= n); };
+  $('moreBtn').onclick = () => { n += 48; draw(); }; draw();
+}
+function viewGenres(){
+  setNav('');
+  V().innerHTML = `<h1 class="pg">Generi</h1><h2 class="sec">Le grandi famiglie</h2><div class="genres">${MACRO.map(([k, name])=>[k, name, IDX.filter(e=>e.m === k).length]).filter(x=>x[2]).map(([k, name, c])=>`<a class="genre" href="#famiglia/${k}"><b>${esc(name)}</b><i>${fmtN(c)}</i></a>`).join('')}</div>`
+    + `<h2 class="sec">Tutti i sottogeneri<span class="cnt">${GENRES.length}</span></h2><div class="chips">${GENRES.map(x=>`<a class="chip" href="#genere/${enc(x.g)}">${esc(cap(x.g))} <span class="note">${fmtN(x.n)}</span></a>`).join('')}</div>`;
+}
+function viewMasterpieces(){
+  setNav('capolavori');
+  if(!MP.size){ V().innerHTML = `<h1 class="pg">✦ Capolavori</h1><p class="lead">I capolavori arrivano con il prossimo aggiornamento dell'indice dei dischi, che porterà i voti degli utenti di MusicBrainz e le classifiche della critica. Intanto trovi i dischi più famosi in Esplora.</p>`; return; }
+  const fams = MACRO.filter(([k])=>(CAPO_FAM[k] || []).length >= 4), all = masterpieces();
+  V().innerHTML = `<h1 class="pg">✦ Capolavori</h1><p class="lead">${HAS_CL ? 'Gli album in studio con il consenso più largo: presenza nelle classifiche della critica, premi e voti degli utenti di MusicBrainz, difesi dalle manipolazioni.' : 'Gli album in studio più amati dagli utenti di MusicBrainz, difesi dalle manipolazioni.'} Per ogni genere, i suoi.</p>`
+    + strip('I più grandi', CAPO_TOP, '', '') + fams.map(([k, name])=>strip(esc(name), CAPO_FAM[k], '#famiglia/' + k, 'Il genere')).join('')
+    + `<h2 class="sec">Tutti i capolavori<span class="cnt">${all.length}</span></h2><div class="filters"><select id="fF"><option value="">Tutti i generi</option>${fams.map(([k, name])=>`<option value="${k}">${esc(name)}</option>`).join('')}</select></div><div class="grid" id="lst"></div>`;
+  const draw = () => { const f = $('fF').value; $('lst').innerHTML = all.filter(e=>!f || e.m === f).map(card).join(''); };
+  $('fF').onchange = draw; draw();
+}
+
+/* ---------- artista: come nell'app dei dischi, e di più ---------- */
+const LINKS = [['official homepage', 'Sito ufficiale'], [/instagram\.com/, 'Instagram'], [/facebook\.com/, 'Facebook'], [/(twitter|x)\.com/, 'X'], [/youtube\.com|youtu\.be/, 'YouTube'], [/tiktok\.com/, 'TikTok'], [/bandcamp\.com/, 'Bandcamp'], [/soundcloud\.com/, 'SoundCloud'],
+  [/discogs\.com/, 'Discogs'], [/allmusic\.com/, 'AllMusic'], [/last\.fm/, 'Last.fm'], [/setlist\.fm/, 'Setlist.fm'], [/songkick\.com/, 'Songkick'], [/genius\.com/, 'Genius'], [/rateyourmusic\.com/, 'Rate Your Music'], [/imdb\.com/, 'IMDb']];
+function linkName(type, u){ for(const [k, n] of LINKS){ if(typeof k === 'string' ? type === k : k.test(u)) return n; } return ''; }
+function mergePeople(l){ const m = new Map(); l.forEach(p=>{ const c = m.get(p.n) || { n: p.n, roles: new Set(), yrs: [], cur: false, orig: false }; p.role.split(', ').filter(Boolean).forEach(r=>c.roles.add(r)); if(p.yrs) c.yrs.push(p.yrs); c.cur = c.cur || p.cur; c.orig = c.orig || p.orig; m.set(p.n, c); });
+  return [...m.values()].map(c=>({ n: c.n, role: [...c.roles].join(', '), yrs: c.yrs.join(', '), cur: c.cur, orig: c.orig })); }
+function parseMbArtist(j){
+  const ls = j['life-span'] || {}, o = { type: j.type || '', begin: ls.begin || '', end: ls.end || '', area: (j.area || {}).name || '', from: (j['begin-area'] || {}).name || '', members: [], bands: [], support: [], links: [] };
+  const role = r => (r.attributes || []).filter(a=>!/^(original|founder|minor|additional|guest|solo)$/i.test(a)).map(a=>INSTR_IT[a.toLowerCase()] || a).join(', ');
+  const yrs = r => { const b = String(r.begin || '').slice(0, 4), e = String(r.end || '').slice(0, 4); return b || e ? `${b || '?'}–${e}` : ''; };
+  for(const r of j.relations || []){
+    if(r['target-type'] === 'artist' && r.artist){
+      const p = { n: r.artist.name, role: role(r), yrs: yrs(r), cur: !r.ended && !r.end, orig: (r.attributes || []).some(a=>/^(original|founder)$/i.test(a)) };
+      if(r.type === 'member of band') (r.direction === 'backward' ? o.members : o.bands).push(p);
+      else if(/supporting musician/.test(r.type) && r.direction === 'backward') o.support.push(p);
+    } else if(r['target-type'] === 'url' && r.url && r.url.resource){ const n = linkName(r.type, r.url.resource); if(n && !o.links.some(x=>x.n === n)) o.links.push({ n, u: r.url.resource }); }
+  }
+  o.members = mergePeople(o.members).sort((a, b)=>(b.cur - a.cur) || (b.orig - a.orig)); o.bands = mergePeople(o.bands); o.support = mergePeople(o.support).slice(0, 14);
+  o.links.sort((a, b)=>(a.n === 'Sito ufficiale' ? -1 : 0) - (b.n === 'Sito ufficiale' ? -1 : 0));
+  return o;
+}
+async function wikiIntro(sl){
+  for(const [k, lang] of [['itwiki', 'it'], ['enwiki', 'en']]){
+    const t = sl && sl[k] && sl[k].title; if(!t) continue;
+    try{ const j = await jget(`https://${lang}.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&format=json&origin=*&titles=${enc(t)}`);
+      const pg = Object.values((j.query && j.query.pages) || {})[0], tx = pg && pg.extract && pg.extract.trim();
+      if(tx && tx.length > 80) return { text: tx, lang, url: `https://${lang}.wikipedia.org/wiki/${enc(t.replace(/ /g, '_'))}` }; }catch(e){}
+  }
+  return null;
 }
 async function artistOnline(A){
-  const key = 'art1:' + A.k, c = await dget(key); if(c && Date.now() - c.at < 60 * 864e5) return c;
+  const key = 'art3:' + A.k, c = await dget(key); if(c && Date.now() - c.at < 60 * 864e5) return c;
   if(navigator.onLine === false) return c;
   const out = { at: Date.now() };
-  // l'artista si trova attraverso i suoi dischi più famosi: niente omonimi
-  for(const e of A.list.slice(0, 3)){
+  for(const e of A.list.slice(0, 3)){   // l'artista si trova attraverso i suoi dischi più famosi: niente omonimi
     try{
       const aq = await wdByMB('P436', uuid(e.id)); if(!aq) continue;
       const alb = (await wdEntities([aq], 'claims'))[aq] || {}, perf = claimIds(alb, 'P175'); if(!perf.length) continue;
@@ -439,21 +651,86 @@ async function artistOnline(A){
       const hit = perf.find(q=>{ const l = norm(wdLabel(ents[q])); return l && (l === A.k || A.k.includes(l) || l.includes(A.k)); });
       if(!hit) continue;
       const x = ents[hit]; out.qid = hit;
-      const img = claimVal(x, 'P18'); if(img) out.img = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + enc(img) + '?width=240';
-      const yr = p => { const v = claimVal(x, p); const m = v && v.time && v.time.match(/^[+-](\d{4})/); return m ? m[1] : ''; };
-      const from = yr('P571') || yr('P569'), to = yr('P576') || yr('P570'), band = !!claimVal(x, 'P571');
-      const cq = (claimIds(x, 'P495')[0] || claimIds(x, 'P27')[0] || claimIds(x, 'P740')[0]); const cl = cq ? wdLabel((await wdEntities([cq]))[cq]) : '';
-      out.facts = [band ? (from ? `In attività dal ${from}${to ? ' al ' + to : ''}` : '') : (from ? `Nato nel ${from}${to ? ', morto nel ' + to : ''}` : ''), cl].filter(Boolean).join(' · ');
-      out.wiki = await wikiSummary(x.sitelinks);
+      const img = claimVal(x, 'P18'); if(img) out.img = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + enc(img) + '?width=320';
+      const tm = p => { const v = claimVal(x, p); return v && v.time ? wdTime(v) : ''; };
+      Object.assign(out, { born: tm('P569'), died: tm('P570'), formed: tm('P571'), ended: tm('P576') });
+      const R = { place: claimIds(x, 'P19').slice(0, 1), country: claimIds(x, 'P495').concat(claimIds(x, 'P27')).slice(0, 1), instr: claimIds(x, 'P1303').slice(0, 8), labels: claimIds(x, 'P264').slice(0, 8), genres: claimIds(x, 'P136').slice(0, 6), awards: claimIds(x, 'P166').slice(0, 16), noms: claimIds(x, 'P1411').slice(0, 10), infl: claimIds(x, 'P737').slice(0, 12) };
+      const ids = [...new Set(Object.values(R).flat())], labs = ids.length ? await wdEntities(ids) : {};
+      Object.entries(R).forEach(([k, l])=>{ out[k] = l.map(q=>wdLabel(labs[q])).filter(Boolean); });
+      out.awTotal = claimIds(x, 'P166').length; out.nomTotal = claimIds(x, 'P1411').length;
+      const site = claimVal(x, 'P856'); if(site && /^https?:/.test(site)) out.site = site;
+      out.mbid = claimVal(x, 'P434') || '';
+      out.wiki = (await wikiIntro(x.sitelinks)) || (await wikiSummary(x.sitelinks));
       break;
     }catch(err){}
   }
+  if(out.mbid){ try{ out.mb = parseMbArtist(await mbget(`artist/${out.mbid}?inc=artist-rels+url-rels&fmt=json`)); }catch(err){} }
   await dset(key, out); return out;
 }
-function viewArtists(){
-  setNav('artisti'); const all = [...ARTISTS.values()].filter(A=>A.list.length >= 2).sort((a, b)=>b.fame - a.fame);
+async function studioTeam(A){   // chi ha lavorato in studio con l'artista: dai crediti dei suoi 4 album più famosi
+  const key = 'team1:' + A.k, c = await dget(key); if(c && Date.now() - c.at < 60 * 864e5) return c;
+  if(navigator.onLine === false) return c;
+  const albs = A.list.filter(e=>e.ty === 'A').slice(0, 4), tally = new Map();
+  for(const e of albs){ const d = await albumOnline(e).catch(()=>null); if(!d || !d.credits) continue; const seen = new Set();
+    d.credits.forEach(cr=>{ if(!/^(prod|eng|mix|master|arr)$/.test(cr.r)) return; const k = cr.r + '|' + cr.n; if(seen.has(k)) return; seen.add(k);
+      const t = tally.get(k) || { r: cr.r, n: cr.n, a: [] }; t.a.push(e.t); tally.set(k, t); }); }
+  const out = { at: Date.now(), n: albs.length, team: [...tally.values()].sort((a, b)=>b.a.length - a.a.length) };
+  await dset(key, out); return out;
+}
+function viewArtist(name){
+  const A = ARTISTS.get(norm(name)); if(!A) return viewHome(); setNav('');
+  const L = A.list, ys = L.map(e=>e.y).filter(Boolean), byYear = l => l.slice().sort((a, b)=>(a.y || 9999) - (b.y || 9999)), fam = artistFamily(A), sim = similarArtists(A);
+  const sec = (t, l) => l.length ? `<h2 class="sec">${t}<span class="cnt">${l.length}</span></h2><div class="grid">${byYear(l).map(card).join('')}</div>` : '';
+  const counts = [['album in studio', L.filter(e=>e.ty === 'A').length], ['EP', L.filter(e=>e.ty[0] === 'E').length], ['dal vivo', L.filter(e=>e.ty.includes('L')).length], ['raccolte', L.filter(e=>e.ty.includes('C')).length]].filter(x=>x[1]).map(([t, n])=>`${n} ${t}`).join(', ');
+  V().innerHTML = `<div class="art-head"><div class="ph-art" id="artPh">${esc(initials(A.name))}</div><div style="min-width:0">
+      <h1 class="pg">${esc(A.name)}</h1><p class="meta">${counts}${ys.length ? ` · dal ${Math.min(...ys)} al ${Math.max(...ys)}` : ''}</p>
+      <div class="chips">${fam ? `<a class="chip" href="#famiglia/${fam}" style="background:var(--s3)">${esc(famName(fam))}</a>` : ''}${topGenres(L, 4).map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div><div id="artFacts" class="note" style="margin-top:10px"></div></div></div>
+    <p class="lbl">Ascolta su</p>${listen(A.name)}
+    <div id="artOn"><p class="note">Carico biografia, formazione e crediti…</p></div><div id="artTeam"></div>
+    ${sim.length ? `<h2 class="sec">Artisti simili</h2><div class="people">${sim.map(personCard).join('')}</div>` : ''}
+    ${L.length > 6 ? strip('I più famosi', L, '', '') : ''}
+    ${sec('Album in studio', L.filter(e=>e.ty === 'A'))}${sec('EP', L.filter(e=>e.ty[0] === 'E'))}${sec('Dal vivo', L.filter(e=>e.ty.includes('L')))}${sec('Raccolte', L.filter(e=>e.ty.includes('C')))}${sec('Colonne sonore', L.filter(e=>e.ty.includes('S')))}${sec('Altro', L.filter(e=>e.ty[0] === 'A' && /R/.test(e.ty) && !/[LCS]/.test(e.ty)))}`;
+  const here = () => decodeURIComponent(location.hash.replace(/^#/, '')) === 'artista/' + A.name || location.hash.replace(/^#/, '') === 'artista/' + enc(A.name);
+  artistOnline(A).then(d=>{ if(!here() || !$('artOn')) return; renderArtistOnline(A, d || {}); }).catch(()=>{ if($('artOn')) $('artOn').innerHTML = ''; });
+  if(navigator.onLine !== false) studioTeam(A).then(t=>{ if(!here() || !$('artTeam') || !t || !t.team.length) return;
+    const R = [['prod', 'Produzione'], ['eng', 'Tecnici del suono'], ['mix', 'Missaggio'], ['master', 'Masterizzazione'], ['arr', 'Arrangiamenti']];
+    $('artTeam').innerHTML = box('In studio con', R.map(([r, tl])=>{ const l = t.team.filter(x=>x.r === r).slice(0, 8); return l.length ? `<p class="lbl" style="margin-top:10px">${tl}</p>${l.map(x=>`<div style="padding:3px 0"><b style="font-weight:650">${esc(x.n)}</b> <span class="note">${x.a.length > 1 ? x.a.length + ' dischi' : esc(x.a[0])}</span></div>`).join('')}` : ''; }).join('')
+      + `<p class="note">Dai crediti dei ${t.n} album in studio più famosi, su MusicBrainz.</p>`); }).catch(()=>{});
+}
+function renderArtistOnline(A, d){
+  if(!d.qid){ $('artOn').innerHTML = navigator.onLine === false ? '<p class="note">Biografia e crediti arriveranno con la rete.</p>' : ''; return; }
+  if(d.img && $('artPh') && !$('artPh').querySelector('img')) $('artPh').insertAdjacentHTML('beforeend', `<img src="${esc(d.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`);
+  const mb = d.mb || {}, grp = mb.type === 'Group' || !!d.formed, yr = s => String(s || '').slice(0, 4);
+  const from = mb.from || (d.place || [])[0] || '', country = mb.area || (d.country || [])[0] || '';
+  $('artFacts').textContent = [grp ? (yr(mb.begin || d.formed) ? `In attività dal ${yr(mb.begin || d.formed)}${(mb.end || d.ended) ? ' al ' + yr(mb.end || d.ended) : ''}` : '') : '', [from, country].filter((x, i, a)=>x && a.indexOf(x) === i).join(', ')].filter(Boolean).join(' · ');
+  const P = [], lk = n => ARTISTS.has(norm(n)) ? `<a class="lnk" href="#artista/${enc(n)}">${esc(n)}</a>` : esc(n);
+  if(d.wiki) P.push(box('Biografia', d.wiki.text.split(/\n+/).filter(Boolean).map(p=>`<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(p)}</p>`).join('') + `<p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
+  const kv = [];
+  if(!grp && (d.born || mb.begin)) kv.push(['Nato', esc([fmtD(d.born || mb.begin), (d.place || [])[0]].filter(Boolean).join(', '))]);
+  if(!grp && d.died) kv.push(['Morto', esc(fmtD(d.died))]);
+  if(grp && from) kv.push(['Origine', esc([from, country].filter((x, i, a)=>x && a.indexOf(x) === i).join(', '))]);
+  if(d.genres && d.genres.length) kv.push(['Generi', esc(d.genres.join(', '))]);
+  if(d.instr && d.instr.length) kv.push(['Strumenti', esc(d.instr.join(', '))]);
+  if(d.labels && d.labels.length) kv.push(['Etichette', esc(d.labels.join(', '))]);
+  if(d.infl && d.infl.length) kv.push(['Influenzato da', d.infl.map(lk).join(', ')]);
+  if(d.awards && d.awards.length) kv.push([`Premi${d.awTotal > d.awards.length ? ` (${d.awTotal})` : ''}`, esc(d.awards.join(' · '))]);
+  if(d.noms && d.noms.length) kv.push([`Candidature${d.nomTotal > d.noms.length ? ` (${d.nomTotal})` : ''}`, esc(d.noms.join(' · '))]);
+  if(kv.length) P.push(box('Scheda', `<dl class="kv">${kv.map(([k, v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`));
+  const people = (t, l, note) => l && l.length ? box(t, l.map(p=>`<div style="padding:5px 0; border-bottom:1px solid rgba(255,255,255,.05)"><b style="font-weight:650">${lk(p.n)}</b>${p.orig ? ' <span class="bd" style="font-size:11px">fondatore</span>' : ''}${p.role ? ` <span class="note">${esc(p.role)}</span>` : ''}${p.yrs ? ` <span class="note">· ${esc(p.yrs)}</span>` : ''}</div>`).join('') + (note ? `<p class="note">${note}</p>` : '')) : '';
+  if(mb.members && mb.members.length){ const cur = mb.members.filter(p=>p.cur), past = mb.members.filter(p=>!p.cur); P.push(people('Formazione', cur.concat(past), cur.length && past.length ? `${cur.length} nella formazione attuale, ${past.length} ex membri.` : '')); }
+  else if(d.members && d.members.length) P.push(box('Formazione', d.members.map(lk).join(', ')));
+  P.push(people('Ha fatto parte di', mb.bands), people('Musicisti di supporto', mb.support));
+  const links = (mb.links || []).slice(); if(d.site && !links.some(x=>x.n === 'Sito ufficiale')) links.unshift({ n: 'Sito ufficiale', u: d.site });
+  if(links.length) P.push(box('Link', `<div class="chips">${links.map(x=>`<a class="chip" href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.n)} ↗</a>`).join('')}</div>`));
+  P.push(`<p class="note">Fonti: Wikipedia, Wikidata${mb.type || mb.members ? ', MusicBrainz' : ''}.</p>`);
+  $('artOn').innerHTML = P.join('');
+}
+function viewArtists(fam){
+  setNav('artisti'); const F = fam && MACRO.find(x=>x[0] === fam);
+  const all = F ? (FAM_ART[fam] || []) : [...ARTISTS.values()].filter(A=>A.list.length >= 2 && !VARIOUS.test(A.name)).sort((a, b)=>b.fame - a.fame);
   let n = 90;
-  V().innerHTML = `<h1 class="pg">Artisti</h1><p class="lead">Dal più famoso, in base alla fama dei loro dischi.</p><input id="af" type="search" placeholder="Filtra per nome…" style="width:100%; max-width:420px; margin-bottom:14px"><div class="people" id="al"></div><p style="margin-top:18px"><button class="btn" id="am">Mostra altri</button></p>`;
+  V().innerHTML = `<h1 class="pg">Artisti${F ? ': ' + esc(F[1]) : ''}</h1><div class="tabs"><a href="#artisti" class="${F ? '' : 'on'}">Tutti</a>${MACRO.filter(([k])=>(FAM_ART[k] || []).length).map(([k, name])=>`<a href="#artisti/${k}" class="${fam === k ? 'on' : ''}">${esc(name)}</a>`).join('')}</div>`
+    + `<p class="lead">${F ? 'Gli artisti di riferimento del genere, dal più importante.' : 'Dal più famoso, in base alla fama dei loro dischi.'}</p><input id="af" type="search" placeholder="Filtra per nome…" style="width:100%; max-width:420px; margin-bottom:14px"><div class="people" id="al"></div><p style="margin-top:18px"><button class="btn" id="am">Mostra altri</button></p>`;
   const draw = () => { const f = norm($('af').value), l = f ? all.filter(A=>A.k.includes(f)) : all; $('al').innerHTML = l.slice(0, n).map(personCard).join(''); $('am').classList.toggle('hidden', l.length <= n); };
   $('af').oninput = () => { n = 90; draw(); }; $('am').onclick = () => { n += 90; draw(); }; draw();
 }
@@ -561,7 +838,9 @@ function route(){
   window.scrollTo(0, 0);
   if(k === 'album') return viewAlbum(arg);
   if(k === 'artista') return viewArtist(arg);
-  if(k === 'artisti') return viewArtists();
+  if(k === 'artisti') return viewArtists(arg);
+  if(k === 'famiglia') return viewFamily(arg);
+  if(k === 'generi') return viewGenres();
   if(k === 'lista') return viewList(arg);
   if(k === 'genere') return viewList('genere', arg);
   if(k === 'decennio') return viewList('decennio', arg);
