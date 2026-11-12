@@ -117,6 +117,15 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 #toast{position:fixed; left:50%; bottom:calc(22px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--paper); color:#111; padding:10px 16px; border-radius:20px; font-weight:650; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:20; max-width:90vw; text-align:center;}
 #toast.on{opacity:1;}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+
+.btn.amber{background:var(--amber); color:#1d1406; border-color:transparent;}
+.st-chips{display:flex; flex-wrap:wrap; gap:8px;} .st-chip{height:40px; padding:0 14px; border-radius:20px; border:1px solid var(--line); background:var(--s2); color:var(--paper); font:inherit; font-weight:650; font-size:15px; cursor:pointer;}
+.st-chip.on{background:var(--amber); color:#1d1406; border-color:transparent;}
+.st-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+.st-res{display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:16px; margin-top:16px;}
+.st-card{display:grid; grid-template-columns:118px minmax(0,1fr); gap:14px; background:var(--s1); border:1px solid var(--line); border-radius:14px; padding:12px; align-items:start;}
+.st-card .cv{width:118px;} .st-info{display:flex; flex-direction:column; gap:6px; min-width:0;} .st-info b{font-size:18px; font-weight:750; letter-spacing:-.015em;} .st-tier{color:var(--amber2); font-weight:700; font-size:14px;}
+.trx .plot{white-space:pre-line;}
 </style>
 </head>
 <body>
@@ -135,7 +144,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -150,7 +159,7 @@ const durTot = ms => { const m = Math.round((ms || 0) / 60000); return m >= 60 ?
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove('on'), 2600); }
 
 /* ---------- l'indice ---------- */
-let HAS_SL = false, HAS_CL = false, CAPO_TOP = [], CAPO_FAM = {}, FAM_ART = {}, REF = {}, ACCLAIM = [], HAS_W = false, IDX = [], BY_ID = new Map(), ARTISTS = new Map(), GENRES = [], META = { built: '', dump: '' }, RATED = false, MP = new Set(), GEMS = [], OWN = new Map(), TBYT = null;
+let ABS = new Set(), GRAN = new Set(), HAS_SL = false, HAS_CL = false, CAPO_TOP = [], CAPO_FAM = {}, FAM_ART = {}, REF = {}, ACCLAIM = [], HAS_W = false, IDX = [], BY_ID = new Map(), ARTISTS = new Map(), GENRES = [], META = { built: '', dump: '' }, RATED = false, MP = new Set(), GEMS = [], OWN = new Map(), TBYT = null;
 const TYPES = { L: 'Dal vivo', C: 'Raccolta', S: 'Colonna sonora', R: 'Remix' };
 const typeLabel = e => e.ty[0] === 'E' ? 'EP' : (TYPES[e.ty[1]] || 'Album');
 const typeKey = e => e.ty[0] === 'E' ? 'ep' : e.ty.length > 1 ? e.ty[1] : 'studio';
@@ -206,8 +215,13 @@ function build(txt){
     CAPO_FAM[k] = capped(l.sort((a, b)=>b.bf - a.bf || a.r - b.r), 2, 16); }
   MP = new Set(CAPO_TOP.map(e=>e.id)); Object.values(CAPO_FAM).forEach(l=>l.forEach(e=>MP.add(e.id)));
   RATED = MP.size >= 20;
+  // i livelli, come nell'Atlante del Cinema: ✦✦ i 50 più grandi, ✦ gli altri capolavori, ◆ i gran dischi (gli 800 migliori dopo i capolavori, al massimo 3 per artista)
+  ABS = new Set(CAPO_TOP.slice(0, 50).map(e=>e.id));
+  GRAN = new Set(capped(IDX.filter(e=>trusted(e) && !MP.has(e.id) && e.vc >= 8 && e.rv && e.r < 30000).sort((a, b)=>b.br - a.br || a.r - b.r), 3, 800).map(e=>e.id));
+  for(const e of IDX) e.tier = ABS.has(e.id) ? 3 : MP.has(e.id) ? 2 : GRAN.has(e.id) ? 1 : 0;
   const bg = e => (e.vc * e.rv + 10 * C) / (e.vc + 10);   // gemme: meno votate, peso più leggero; tra il 3.000° e il 15.000° posto
   GEMS = capped(IDX.filter(e=>e.vc >= 8 && e.rv && e.r >= 3000 && e.r < 15000 && trusted(e) && !MP.has(e.id) && bg(e) >= 85).sort((a, b)=>bg(b) - bg(a) || a.r - b.r), 2, 150);
+  GEMS.forEach(e=>{ e.gem = true; });
   ACCLAIM = HAS_CL ? IDX.filter(e=>e.cl >= 3 && (!HAS_W || e.w) && e.ty[0] === 'A').sort((a, b)=>b.cl - a.cl || a.r - b.r).slice(0, 300) : [];
   TBYT = null;
 }
@@ -263,7 +277,7 @@ const LS = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'nul
 let LISTE = LS('amus-liste', {}), CLS = LS('amus-classifiche', []);
 const saveL = () => { try{ localStorage.setItem('amus-liste', JSON.stringify(LISTE)); }catch(e){ toast('Memoria piena: scarica le liste'); } };
 const saveC = () => { try{ localStorage.setItem('amus-classifiche', JSON.stringify(CLS)); }catch(e){ toast('Memoria piena: scarica le liste'); } };
-function setL(id, patch){ const c = Object.assign({}, LISTE[id] || {}, patch); Object.keys(c).forEach(k=>{ if(!c[k]) delete c[k]; }); if(Object.keys(c).length) LISTE[id] = c; else delete LISTE[id]; saveL(); }
+function setL(id, patch){ PROFILE = null; const c = Object.assign({}, LISTE[id] || {}, patch); Object.keys(c).forEach(k=>{ if(!c[k]) delete c[k]; }); if(Object.keys(c).length) LISTE[id] = c; else delete LISTE[id]; saveL(); }
 
 /* ---------- rete: memoria, MusicBrainz una richiesta al secondo ---------- */
 let _db = null; const MEM = new Map();
@@ -388,7 +402,7 @@ async function wikiInfobox(title){
 const PAL = ['#3B2F4F', '#2F4A4F', '#4F3A2F', '#2F3F4F', '#4A2F3A', '#35452F', '#4F4A2F', '#2F4F40', '#40304F', '#4F2F2F'];
 const tileBg = e => PAL[parseInt(e.id.slice(0, 2), 16) % PAL.length];
 const coverUrl = (e, size) => `https://coverartarchive.org/release-group/${uuid(e.id)}/front-${size || 250}`;
-const cover = (e, size) => `<div class="cv" style="--tilebg:${tileBg(e)}"><img src="${coverUrl(e, size)}" alt="" loading="lazy" onerror="this.remove()"><span class="ph"><span>${esc(e.t)}</span><small>${esc(e.a)}</small></span>${MP.has(e.id) ? '<i class="mk">✦</i>' : ''}${OWN.has(e.id) ? '<i class="own">✓</i>' : ''}</div>`;
+const cover = (e, size) => `<div class="cv" style="--tilebg:${tileBg(e)}"><img src="${coverUrl(e, size)}" alt="" loading="lazy" onerror="this.remove()"><span class="ph"><span>${esc(e.t)}</span><small>${esc(e.a)}</small></span>${e.tier ? `<i class="mk">${e.tier === 3 ? '✦✦' : e.tier === 2 ? '✦' : '◆'}</i>` : ''}${OWN.has(e.id) ? '<i class="own">✓</i>' : ''}</div>`;
 const card = e => `<a class="card" href="#album/${e.id}">${cover(e)}<b>${esc(e.t)}</b><small>${esc(e.a)}${e.y ? ' · ' + e.y : ''}</small></a>`;
 function badges(e){ const L = LISTE[e.id] || {}, b = [];
   if(MP.has(e.id)) b.push('<span class="bd mp">✦ Capolavoro</span>');
@@ -408,6 +422,7 @@ function setNav(k){ document.querySelectorAll('#nav a').forEach(a=>a.classList.t
 /* ---------- Esplora ---------- */
 const LISTS = {
   famosi: ['I più famosi', () => IDX.filter(e=>!e.sus), 'Gli album più conosciuti, dal più famoso.'],
+  grandi: ['◆ Gran dischi', () => IDX.filter(e=>e.tier === 1).sort((a, b)=>b.br - a.br || a.r - b.r), 'Gli 800 album migliori dopo i capolavori: un gradino sotto, ma da ascoltare. Al massimo tre per artista.'],
   capolavori: ['✦ Capolavori', masterpieces, 'Gli album in studio più amati dagli utenti di MusicBrainz: servono molti voti alti, non pochi voti perfetti. Al massimo tre dischi per artista.'],
   acclamati: ['📰 Acclamati dalla critica', () => ACCLAIM, 'I dischi presenti nel maggior numero di classifiche e opere di riferimento della critica (come le liste di Rolling Stone o «1001 album da ascoltare»), secondo Wikidata.'],
   gemme: ['💎 Gemme nascoste', () => GEMS, 'Dischi amatissimi da chi li conosce, ma lontani dai più famosi.'],
@@ -421,17 +436,21 @@ const LISTS = {
 function decades(){ const c = new Map(); for(const e of IDX){ if(e.y < 1940 || e.y > YEAR) continue; const d = Math.floor(e.y / 10) * 10; c.set(d, (c.get(d) || 0) + 1); } return [...c.entries()].filter(x=>x[1] >= 30).sort((a, b)=>a[0] - b[0]).map(([d, n])=>({ d, n })); }
 function viewHome(){
   setNav(''); const dec = decades(), mx = Math.max(1, ...dec.map(x=>x.n));
-  const scop = ['capolavori', 'acclamati', 'gemme', 'live', 'colonne', 'raccolte', 'ep'].map(k=>[k, LISTS[k][1]().length]).filter(x=>x[1] > 0);
+  const scop = ['capolavori', 'grandi', 'acclamati', 'gemme', 'live', 'colonne', 'raccolte', 'ep'].map(k=>[k, LISTS[k][1]().length]).filter(x=>x[1] > 0);
   V().innerHTML = `<div class="ruler">${dec.map(x=>`<a href="#decennio/${x.d}"><b>${decLabel(x.d)}</b><i style="height:${Math.round(6 + 34 * x.n / mx)}px"></i><small>${fmtN(x.n)}</small></a>`).join('')}</div>`
+    + `<div class="acts" style="margin:14px 0 2px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#adesso">🎧 Cosa ascolto adesso?</a><a class="btn" href="#perte">✨ Per te</a></div>`
     + (RATED ? strip('✦ Capolavori', masterpieces(), '#lista/capolavori') : '')
+    + perTeStrip()
     + strip('📰 Acclamati dalla critica', ACCLAIM, '#lista/acclamati')
     + strip('🆕 Novità', novita(), '#lista/novita', 'Vedi tutte')
+    + annivStrip()
     + strip('I più famosi', IDX.filter(e=>!e.sus), '#lista/famosi')
     + strip('✓ Nella tua discoteca', LISTS.discoteca[1](), '#lista/discoteca')
     + CLS.filter(c=>c.pin && c.items.length).map(c=>strip('🏆 ' + esc(c.name), c.items.map(id=>BY_ID.get(id)).filter(Boolean), '#classifica/' + c.id, 'Apri')).join('')
     + (scop.length ? `<h2 class="sec">Scopri</h2><div class="genres">${scop.map(([k, n])=>`<a class="genre" href="#lista/${k}"><b>${esc(LISTS[k][0])}</b><i>${fmtN(n)}</i></a>`).join('')}</div>` : '')
     + `<h2 class="sec">Generi<a class="more" href="#generi">Tutti i sottogeneri</a></h2><div class="genres">${MACRO.map(([k, name])=>[k, name, IDX.filter(e=>e.m === k).length]).filter(x=>x[2]).map(([k, name, c])=>`<a class="genre" href="#famiglia/${k}"><b>${esc(name)}</b><i>${fmtN(c)}</i></a>`).join('')}</div>`
     + `<p class="note" style="margin-top:26px">${fmtN(IDX.length)} dischi da MusicBrainz${META.built ? ', indice del ' + esc(fmtD(META.built)) : ''}. <a class="lnk" href="../">Apri la tua Discoteca</a></p>`;
+  if($('surprise')) $('surprise').onclick = surprise;
 }
 function viewList(k, arg){
   let title, base, lead;
@@ -479,7 +498,7 @@ function viewAlbum(id){
       <p class="by"><a class="lnk" href="#artista/${enc(e.a)}">${esc(e.a)}</a></p>
       <p class="meta">${[e.d ? fmtD(e.d) : e.y || '', typeLabel(e)].filter(Boolean).join(' · ')}</p>
       ${e.g.length ? `<div class="chips">${e.g.map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div>` : ''}
-      <div class="badges" style="justify-content:flex-start; margin-top:12px">${MP.has(e.id) ? '<span class="bd mp">✦ Capolavoro</span>' : ''}${HAS_CL && e.cl ? `<span class="bd">📰 In ${e.cl} ${e.cl === 1 ? 'classifica' : 'classifiche'} della critica</span>` : ''}${e.sl >= 2 ? `<span class="bd">🌍 Voce in ${e.sl} Wikipedia</span>` : ''}${e.aw ? `<span class="bd">🏆 ${e.aw} ${e.aw === 1 ? 'premio' : 'premi'}</span>` : ''}${OWN.has(e.id) ? `<span class="bd own">✓ Nella tua discoteca${OWN.get(e.id) ? ' · ' + esc(OWN.get(e.id)) : ''}</span>` : ''}</div>
+      <div class="badges" style="justify-content:flex-start; margin-top:12px">${tierBadge(e)}${HAS_CL && e.cl ? `<span class="bd">📰 In ${e.cl} ${e.cl === 1 ? 'classifica' : 'classifiche'} della critica</span>` : ''}${e.sl >= 2 ? `<span class="bd">🌍 Voce in ${e.sl} Wikipedia</span>` : ''}${e.aw ? `<span class="bd">🏆 ${e.aw} ${e.aw === 1 ? 'premio' : 'premi'}</span>` : ''}${OWN.has(e.id) ? `<span class="bd own">✓ Nella tua discoteca${OWN.get(e.id) ? ' · ' + esc(OWN.get(e.id)) : ''}</span>` : ''}</div>
       <p class="lbl">Ascolta su</p>${listen(e.a + ' ' + e.t)}
       <div class="acts"><button class="btn${L.s === 'v' ? ' on' : ''}" data-act="v">✓ Ascoltato</button><button class="btn${L.s === 'd' ? ' on' : ''}" data-act="d">+ Da ascoltare</button><button class="btn${L.f ? ' on' : ''}" data-act="f">♥ Preferito</button><button class="btn" data-act="rk">🏆 In classifica</button></div>
       <p class="lbl">Il tuo voto</p><div class="rate" id="rate">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=>`<button type="button" data-r="${n}" class="${L.r === n ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -559,7 +578,7 @@ const ROLES = [['perf', 'Musicisti'], ['prod', 'Produzione'], ['arr', 'Arrangiam
 function renderAlbumOnline(e, d){
   if(!d || d.offline){ $('online').innerHTML = '<p class="note">Tracce e notizie arriveranno con la rete.</p>'; return; }
   const P = [], names = l => (l || []).map(x=>x.id ? `<a class="lnk" href="#album/${x.id}">${esc(x.l)}</a>` : esc(x.l)).join(', ');
-  if(d.wiki) P.push(box('La storia', `<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(d.wiki.text)}</p><p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
+  if(d.wiki) P.push(box('La storia', `${d.wiki.lang === 'en' ? trBlock('wTr', d.wiki.text) : `<p class="plot">${esc(d.wiki.text)}</p>`}<p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
   const kv = [], pl = d.places || {}, ib = d.ib || {};
   if(ib.recorded) kv.push(['Registrato', esc(ib.recorded)]);
   const studios = [...new Set([...(pl.rec || []), ...(ib.studio || []), ...(d.rec || [])])].slice(0, 5); if(studios.length) kv.push(['Studi', esc(studios.join(', '))]);
@@ -584,6 +603,7 @@ function renderAlbumOnline(e, d){
   if(d.eds && d.eds.length) P.push(`<details class="box"><summary style="padding:12px 16px; cursor:pointer; font-weight:700">Edizioni <span class="note">${fmtN(d.edTotal || d.eds.length)}</span></summary><div class="in" style="overflow-x:auto"><table style="border-collapse:collapse; width:100%; font-size:13.5px">${d.eds.slice(0, 120).map(x=>`<tr style="border-top:1px solid var(--line)"><td style="padding:6px 8px 6px 0; white-space:nowrap">${esc(x.date || '—')}</td><td style="padding:6px 8px">${esc(x.country)}</td><td style="padding:6px 8px">${esc(x.fmt)}</td><td style="padding:6px 8px">${esc(x.label)}</td><td style="padding:6px 0 6px 8px" class="note">${esc(x.catno)}</td></tr>`).join('')}</table></div></details>`);
   P.push(`<p class="note">Fonti: <a class="lnk" href="https://musicbrainz.org/release-group/${uuid(e.id)}" target="_blank" rel="noopener">MusicBrainz ↗</a>${d.qid ? ` · <a class="lnk" href="https://www.wikidata.org/wiki/${esc(d.qid)}" target="_blank" rel="noopener">Wikidata ↗</a>` : ''}</p>`);
   $('online').innerHTML = P.join('');
+  if(d.wiki && d.wiki.lang === 'en' && $('wTr')) fillTr('wTr', d.wiki.text);   // la storia, tradotta in italiano
 }
 
 /* ---------- famiglie di generi, artisti di riferimento ---------- */
@@ -719,7 +739,7 @@ function renderArtistOnline(A, d){
   const from = mb.from || (d.place || [])[0] || '', country = mb.area || (d.country || [])[0] || '';
   $('artFacts').textContent = [grp ? (yr(mb.begin || d.formed) ? `In attività dal ${yr(mb.begin || d.formed)}${(mb.end || d.ended) ? ' al ' + yr(mb.end || d.ended) : ''}` : '') : '', [from, country].filter((x, i, a)=>x && a.indexOf(x) === i).join(', ')].filter(Boolean).join(' · ');
   const P = [], lk = n => ARTISTS.has(norm(n)) ? `<a class="lnk" href="#artista/${enc(n)}">${esc(n)}</a>` : esc(n);
-  if(d.wiki) P.push(box('Biografia', d.wiki.text.split(/\n+/).filter(Boolean).map(p=>`<p class="plot"${d.wiki.lang === 'en' ? ' lang="en"' : ''}>${esc(p)}</p>`).join('') + `<p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
+  if(d.wiki) P.push(box('Biografia', (d.wiki.lang === 'en' ? trBlock('bTr', d.wiki.text) : d.wiki.text.split(/\n+/).filter(Boolean).map(p=>`<p class="plot">${esc(p)}</p>`).join('')) + `<p class="note"><a class="lnk" href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Continua su Wikipedia${d.wiki.lang === 'en' ? ' (in inglese)' : ''} ↗</a></p>`));
   const kv = [];
   if(!grp && (d.born || mb.begin)) kv.push(['Nato', esc([fmtD(d.born || mb.begin), (d.place || [])[0]].filter(Boolean).join(', '))]);
   if(!grp && d.died) kv.push(['Morto', esc(fmtD(d.died))]);
@@ -739,6 +759,7 @@ function renderArtistOnline(A, d){
   if(links.length) P.push(box('Link', `<div class="chips">${links.map(x=>`<a class="chip" href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.n)} ↗</a>`).join('')}</div>`));
   P.push(`<p class="note">Fonti: Wikipedia, Wikidata${mb.type || mb.members ? ', MusicBrainz' : ''}.</p>`);
   $('artOn').innerHTML = P.join('');
+  if(d.wiki && d.wiki.lang === 'en' && $('bTr')) fillTr('bTr', d.wiki.text);   // la biografia, tradotta in italiano
 }
 function viewArtists(fam){
   setNav('artisti'); const F = fam && MACRO.find(x=>x[0] === fam);
@@ -833,7 +854,7 @@ function viewTools(){
   setNav('strumenti'); const rated = IDX.filter(e=>e.vc).length;
   V().innerHTML = `<h1 class="pg">Strumenti</h1>`
     + box('L\'indice', `<p style="margin-top:0">${fmtN(IDX.length)} dischi da MusicBrainz${META.built ? `, aggiornato il ${esc(fmtD(META.built))}` : ''}. Lo aggiorna ogni mese l'automazione dell'app dei dischi.</p><p class="note">${RATED ? `Voti degli utenti di MusicBrainz presenti per ${fmtN(rated)} dischi: da questi nascono Capolavori e Gemme.` : 'I voti degli utenti di MusicBrainz (per Capolavori e Gemme) arriveranno con il prossimo aggiornamento dell\'indice.'}</p><p class="note">${fmtN(OWN.size)} dischi della tua collezione riconosciuti nell'atlante. <a class="lnk" href="../">Apri la tua Discoteca</a></p>`)
-    + box('Come funziona', `<p style="margin-top:0"><b>✦ Capolavoro</b>: i dischi con il voto più alto degli utenti di MusicBrainz, pesato su quanti hanno votato (pochi voti contano poco). <b>💎 Gemme</b>: voto molto alto, ma lontani dai più famosi. <b>I più famosi</b>: quanto un disco è descritto, votato e collegato su MusicBrainz.</p><p class="note">Copertine: Cover Art Archive. Tracce: MusicBrainz. Storia e biografie: Wikipedia e Wikidata. I link di ascolto aprono la ricerca su Spotify, YouTube Music e Apple Music.</p>`)
+    + box('Come funziona', `<p style="margin-top:0"><b>✦✦ Capolavoro assoluto</b>, <b>✦ Capolavoro</b> e <b>◆ Gran disco</b>: tre gradini, dai voti degli utenti di MusicBrainz difesi dalle manipolazioni (solo album in studio, medie perfette scartate, voto pesato prudente, pochi dischi per artista), con premi e notorietà nel mondo. <b>💎 Gemme</b>: voto molto alto, ma lontani dai più famosi. <b>I più famosi</b>: quanto un disco è descritto, votato e collegato su MusicBrainz.</p><p class="note">Copertine: Cover Art Archive. Tracce: MusicBrainz. Storia e biografie: Wikipedia e Wikidata. I link di ascolto aprono la ricerca su Spotify, YouTube Music e Apple Music.</p>`)
     + box('Le tue liste', `<p style="margin-top:0">Ascoltati, da ascoltare, preferiti, voti e classifiche restano su questo dispositivo. Scaricale per tenerle al sicuro o portarle su un altro.</p><div class="acts"><button class="btn" id="bk">⬇ Scarica le liste</button><button class="btn" id="rsb">⬆ Ripristina</button><input id="rsf" type="file" accept=".json,application/json" class="hidden"></div>`)
     + `<p class="note">Atlante della Musica ${APP_VERSION}</p>`;
   $('bk').onclick = () => { const data = JSON.stringify({ app: 'Atlante della Musica', liste: LISTE, classifiche: CLS }, null, 1), name = `atlante-musica-liste-${TODAY}.json`;
@@ -846,12 +867,190 @@ function viewTools(){
       saveL(); saveC(); toast(`Ripristinate ${n} voci (le esistenti restano)`); }catch(e){ toast('Questo file non è un backup dell\'Atlante della Musica'); } }; r.readAsText(f); };
 }
 
+/* ---------- 🌍 traduzione in italiano, senza chiavi (dall'Atlante del Cinema) ---------- */
+const hashS = t => { let h = 5381; for(let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + '-' + t.length; };
+const decodeEnt = t => { const x = document.createElement('textarea'); x.innerHTML = t; return x.value; };
+function chunks(text, max){
+  const out = []; let cur = '';
+  text.split(/\n+/).forEach(par=>{ par.split(/(?<=[.!?])\s+/).forEach(s=>{ if(cur && (cur + ' ' + s).length > max){ out.push(cur); cur = s; } else cur = cur ? cur + ' ' + s : s; }); if(cur){ out.push(cur + '\n'); cur = ''; } });
+  return out.flatMap(c=>c.length > max ? (c.match(new RegExp('[\\s\\S]{1,' + max + '}(\\s|$)', 'g')) || [c]) : [c]);
+}
+const TR_PAIR = { sourceLanguage: 'en', targetLanguage: 'it' };
+async function chromeTr(){   // stato del traduttore interno di Chrome: 'available', 'downloadable', 'downloading' o 'no'
+  try{ if(self.Translator && Translator.availability){ const a = await Translator.availability(TR_PAIR); return a === 'unavailable' ? 'no' : a; } }catch(e){}
+  return 'no';
+}
+function activateChrome(btn, after){   // va chiamata dentro un clic: Chrome scarica il traduttore solo su richiesta dell'utente
+  let p; try{ p = Translator.create(Object.assign({ monitor(m){ m.addEventListener('downloadprogress', ev=>{ if(btn) btn.textContent = `Scarico il traduttore di Chrome… ${Math.round((ev.loaded || 0) * 100)}%`; }); } }, TR_PAIR)); }catch(e){ p = Promise.reject(e); }
+  if(btn){ btn.disabled = true; btn.textContent = 'Scarico il traduttore di Chrome…'; }
+  return p.then(()=>{ toast('Traduttore di Chrome attivo: traduzioni illimitate, anche offline'); if(after) after(); }).catch(()=>{ if(btn){ btn.disabled = false; btn.textContent = 'Riprova ad attivare il traduttore di Chrome'; } toast('Chrome non è riuscito a scaricare il traduttore'); });
+}
+const trEmail = () => { try{ return (localStorage.getItem('tr-email') || '').trim(); }catch(e){ return ''; } };
+async function translateIt(text){
+  text = String(text || '').trim(); if(!text) return '';
+  const key = 'tr1:' + hashS(text), c = await dget(key); if(c && c.t) return c.t;
+  let out = '';
+  try{ if((await chromeTr()) === 'available'){ const tr = await Translator.create(TR_PAIR); out = await tr.translate(text); } }catch(e){ out = ''; }   // prima Chrome, sul dispositivo
+  if(!out){
+    if(navigator.onLine === false) throw new Error('offline');
+    const res = [];
+    for(const part of chunks(text, 450)){
+      const em = trEmail(), j = await jget('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(part.trim()) + '&langpair=en|it' + (em ? '&de=' + encodeURIComponent(em) : ''));   // con l'email il limite gratuito è 10 volte più alto
+      const t = j && j.responseData && j.responseData.translatedText;
+      if(!t || (j.responseStatus && +j.responseStatus !== 200) || /MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID/i.test(t)) throw new Error('limite');
+      res.push(decodeEnt(t) + (/\n$/.test(part) ? '\n\n' : ' '));
+    }
+    out = res.join('').trim();
+  }
+  await dset(key, { t: out, at: Date.now() }); return out;
+}
+const trBlock = (id, text) => `<div class="trx" id="${id}"><p class="plot" lang="en">${esc(text)}</p><p class="note trn">Traduco in italiano…</p></div>`;
+async function fillTr(id, text){
+  try{
+    const t = await translateIt(text), el = $(id); if(!el) return;
+    el.innerHTML = `<p class="plot" lang="it">${esc(t)}</p><p class="note">Tradotto automaticamente dall'inglese. <button type="button" class="lnk trtg" style="background:none; border:0; padding:0; font:inherit">Mostra l'originale</button></p>`;
+    el.querySelector('.trtg').onclick = ev => { const p = el.querySelector('.plot'), toEn = p.lang === 'it'; p.lang = toEn ? 'en' : 'it'; p.textContent = toEn ? text : t; ev.target.textContent = toEn ? 'Mostra la traduzione' : "Mostra l'originale"; };
+  }catch(e){ const n = $(id) && $(id).querySelector('.trn'); if(!n) return;
+    n.textContent = e.message === 'offline' ? 'Sei offline: la traduzione arriverà con la rete. Ecco il testo originale.' : 'Il traduttore gratuito ha finito il limite di oggi: ecco il testo originale.';
+    const st = await chromeTr();   // sul computer con Chrome recente: si può passare al traduttore interno, senza limiti
+    if(st === 'downloadable' || st === 'downloading'){ n.insertAdjacentHTML('beforeend', ' <button type="button" class="btn" style="height:34px; margin-top:6px">⬇️ Attiva il traduttore di Chrome (gratis, senza limiti)</button>');
+      const b = n.querySelector('button'); b.onclick = () => activateChrome(b, ()=>fillTr(id, text)); }
+    else if(e.message !== 'offline' && !trEmail()) n.insertAdjacentHTML('beforeend', ' Puoi alzare il limite negli <a href="#strumenti" style="color:var(--chart)">Strumenti</a>.'); }
+}
+/* ---------- livelli, 🎲 Sorprendimi, 🎧 Cosa ascolto adesso?, ✨ Per te, 🎂 Compiono gli anni ---------- */
+const tierLabel = e => e.tier === 3 ? '✦✦ Capolavoro assoluto' : e.tier === 2 ? '✦ Capolavoro' : e.tier === 1 ? '◆ Gran disco' : e.gem ? '💎 Gemma nascosta' : '';
+const tierBadge = e => e.tier ? `<span class="bd mp">${tierLabel(e)}</span>` : '';
+const heard = id => (LISTE[id] || {}).s === 'v';
+const decOf = e => Math.floor((e.y || 0) / 10) * 10;
+const tagHas = (e, keys) => e.g.some(t=>keys.some(k=>k[0] === '=' ? t === k.slice(1) : t.includes(k)));
+const NOISY = ['metal', 'punk', 'hardcore', 'industrial', 'noise', 'grindcore', 'thrash'];
+const MOODS = [   // ricette sui generi di MusicBrainz ("=" vuol dire: quel genere esatto, non un pezzo di parola)
+  ['relax', '😌 Rilassante', e=>tagHas(e, ['ambient', 'chillout', 'downtempo', 'trip hop', 'bossa nova', 'lounge', 'new age', 'dream pop', 'cool jazz', 'soft rock', 'smooth jazz', 'acoustic']) && !tagHas(e, NOISY)],
+  ['carica', '⚡ Carica', e=>tagHas(e, ['hard rock', 'punk', 'metal', 'garage rock', 'hardcore', 'grunge', 'thrash', 'power pop', 'stoner', 'heavy'])],
+  ['ballare', '💃 Da ballare', e=>tagHas(e, ['disco', '=funk', 'p-funk', 'house', 'dance', '=electro', 'electro house', 'electropop', 'techno', 'synth-pop', 'synthpop', 'new jack swing', 'italo', 'boogie', 'big beat', 'eurodance']) && !tagHas(e, NOISY.concat(['rock', 'rap']))],
+  ['malinconia', '🌧 Malinconico', e=>tagHas(e, ['slowcore', 'sadcore', 'shoegaze', 'singer-songwriter', '=folk', 'indie folk', 'contemporary folk', 'chamber folk', '=blues', 'delta blues', 'post-rock', 'dream pop', 'chamber pop', 'gothic rock', 'darkwave', 'emo', 'chanson']) && !tagHas(e, ['metal', 'dance', 'disco', 'funk', 'punk', 'hard rock'])],
+  ['studio', '🎯 Per concentrarsi', e=>tagHas(e, ['ambient', 'classical', 'minimalism', 'post-rock', 'idm', 'instrumental', 'piano', 'neoclassical', 'cool jazz', 'modal jazz', 'baroque']) && !tagHas(e, ['hip hop', 'rap', 'vocal', 'pop', 'metal'])],
+  ['notte', '🌙 Notturno', e=>tagHas(e, ['jazz', 'trip hop', '=soul', 'neo soul', 'quiet storm', 'downtempo', 'dark ambient', 'noir', 'smooth soul']) && !tagHas(e, NOISY.concat(['dance', 'disco', '=pop', 'funk']))],
+  ['sole', '☀️ Solare', e=>tagHas(e, ['reggae', 'ska', 'bossa nova', 'samba', 'latin', 'surf', 'sunshine pop', 'afrobeat', 'calypso', 'power pop', 'tropical', 'mpb', '=pop', 'dance-pop', 'britpop', 'bubblegum']) && !tagHas(e, ['metal', 'gothic', 'doom', 'industrial', 'emo'])],
+  ['rime', '🎤 Rime', e=>tagHas(e, ['hip hop', 'hip-hop', '=rap', 'gangsta rap', 'conscious', 'trap', 'boom bap', 'grime', 'drill']) && !tagHas(e, ['metal', 'rock'])],
+  ['epico', '🎻 Epico', e=>tagHas(e, ['progressive rock', 'symphonic', 'post-rock', 'progressive metal', 'orchestral', 'film score', 'soundtrack', 'opera', 'space rock'])],
+  ['speri', '🧪 Sperimentale', e=>tagHas(e, ['experimental', 'avant-garde', 'krautrock', 'free jazz', 'noise', 'musique concrète', 'glitch', 'art pop', 'no wave'])],
+];
+const PICK_KEY = 'amus-pescati';
+function picked(){ try{ return JSON.parse(localStorage.getItem(PICK_KEY) || '[]'); }catch(e){ return []; } }
+function remember(id){ const l = picked().filter(x=>x !== id); l.unshift(id); try{ localStorage.setItem(PICK_KEY, JSON.stringify(l.slice(0, 80))); }catch(e){} }
+function goodPool(f){
+  f = f || {}; const M = f.mood ? MOODS.find(m=>m[0] === f.mood) : null;
+  return IDX.filter(e=>(e.tier || e.gem) && !e.sus && !heard(e.id) && (!f.mine || (LISTE[e.id] || {}).s === 'd') && (!M || M[2](e)) && (!f.fam || e.m === f.fam) && (!f.dec || decOf(e) === +f.dec));
+}
+function pickN(pool, n, avoid){
+  avoid = avoid || []; const recent = new Set(picked()); let p = pool.filter(e=>!recent.has(e.id) && !avoid.includes(e.id)); if(p.length < n) p = pool.filter(e=>!avoid.includes(e.id));
+  const out = [], w = e => (e.tier === 3 ? 1.3 : e.tier === 2 ? 1.15 : e.tier === 1 ? 1 : 0.9) * ((LISTE[e.id] || {}).s === 'd' ? 1.6 : 1);
+  p = p.slice(); while(out.length < n && p.length){ const tot = p.reduce((t, e)=>t + w(e), 0); let r = Math.random() * tot, i = 0; for(; i < p.length - 1; i++){ r -= w(p[i]); if(r <= 0) break; } out.push(p.splice(i, 1)[0]); }
+  out.forEach(e=>remember(e.id)); return out;
+}
+function surprise(){ const pool = goodPool({}); if(!pool.length) return toast('Hai ascoltato tutti i dischi consigliati: complimenti!'); const [e] = pickN(pool, 1); if(e) location.hash = '#album/' + e.id; }
+let AD = { mood: '', fam: '', dec: '', mine: false, gusti: false }, AD_SHOWN = [];
+function adPool(f){ const pool = goodPool(f); if(!f.gusti || profile().rated < 5) return pool; const P = profile(); return pool.map(e=>({ e, s: recScore(e, P).s })).filter(x=>x.s > 0.2).sort((a, b)=>b.s - a.s).slice(0, 40).map(x=>x.e); }
+function adCard(e, why){
+  return `<div class="st-card">${cover(e)}<div class="st-info"><b>${esc(e.t)}</b><span class="note">${esc(e.a)}${e.y ? ' · ' + e.y : ''}${e.g.length ? ' · ' + esc(e.g.map(cap).join(', ')) : ''}</span><span class="st-tier">${esc(why || tierLabel(e))}</span>${why ? `<span class="note">${esc(tierLabel(e))}</span>` : ''}<span style="display:flex; gap:8px; flex-wrap:wrap"><a class="btn" href="#album/${e.id}">Apri il disco</a>${why !== undefined && why !== null ? '' : ''}</span></div></div>`;
+}
+function viewAdesso(){
+  setNav(''); AD_SHOWN = [];
+  const sel = (id, l, v) => `<select id="${id}">${l.map(([k, t])=>`<option value="${k}"${String(k) === String(v) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+  V().innerHTML = `<h1 class="pg">🎧 Cosa ascolto adesso?</h1><p class="lead">Scegli un umore: ti propongo tre dischi tra i gran dischi, i capolavori e le gemme che non hai ancora ascoltato.</p>`
+    + `<p class="lbl">Che umore hai?</p><div class="st-chips" id="aMood">${MOODS.map(([k, t])=>`<button type="button" class="st-chip${AD.mood === k ? ' on' : ''}" data-m="${k}">${t}</button>`).join('')}</div>`
+    + `<p class="lbl">Genere ed epoca</p><div class="st-row">${sel('aFam', [['', 'Qualsiasi genere']].concat(MACRO.map(([k, n])=>[k, n])), AD.fam)}${sel('aDec', [['', 'Qualsiasi epoca']].concat(decades().map(x=>[x.d, 'Anni ' + decLabel(x.d)])), AD.dec)}</div>`
+    + `<p style="margin:14px 0 4px"><label style="display:inline-flex; gap:8px; align-items:center"><input type="checkbox" id="aMine"${AD.mine ? ' checked' : ''}> Solo dalla mia lista "Da ascoltare"</label></p>`
+    + (profile().rated >= 5 ? `<p style="margin:4px 0"><label style="display:inline-flex; gap:8px; align-items:center"><input type="checkbox" id="aGusti"${AD.gusti ? ' checked' : ''}> ✨ In base ai miei gusti</label></p>` : '')
+    + `<p class="note" id="aCount"></p><p><button class="btn amber" id="aGo" type="button">🎧 Proponimi tre dischi</button></p><div id="aOut"></div>`;
+  const count = () => { const n = adPool(AD).length; $('aCount').textContent = n ? `${fmtN(n)} ${n === 1 ? 'disco' : 'dischi'} tra cui scegliere.` : 'Nessun disco con queste scelte: prova ad allargarle.'; $('aGo').disabled = !n; };
+  $('aMood').querySelectorAll('[data-m]').forEach(b=>b.onclick = () => { AD.mood = AD.mood === b.dataset.m ? '' : b.dataset.m; $('aMood').querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on', x.dataset.m === AD.mood)); AD_SHOWN = []; count(); });
+  $('aFam').onchange = ev => { AD.fam = ev.target.value; AD_SHOWN = []; count(); };
+  $('aDec').onchange = ev => { AD.dec = ev.target.value; AD_SHOWN = []; count(); };
+  $('aMine').onchange = ev => { AD.mine = ev.target.checked; AD_SHOWN = []; count(); };
+  if($('aGusti')) $('aGusti').onchange = ev => { AD.gusti = ev.target.checked; AD_SHOWN = []; count(); };
+  const propose = more => { const pool = adPool(AD); if(!pool.length) return; const res = pickN(pool, 3, more ? AD_SHOWN : []); AD_SHOWN = AD_SHOWN.concat(res.map(e=>e.id));
+    $('aOut').innerHTML = res.length ? `<div class="st-res">${res.map(e=>adCard(e)).join('')}</div><p style="margin-top:14px"><button class="btn" id="aMore" type="button">🔁 Altri tre</button></p>` : '<p class="lead">Non ho trovato altro con queste scelte.</p>';
+    if($('aMore')) $('aMore').onclick = () => propose(true); };
+  $('aGo').onclick = () => propose(false); count();
+}
+/* ✨ Per te: dai tuoi voti (8-10 molto a favore, 6-7 poco, 5 o meno contro), dai preferiti, dagli ascoltati e dai "Non mi interessa" */
+const NOPE_KEY = 'amus-nonmiinteressa';
+function nope(){ try{ return JSON.parse(localStorage.getItem(NOPE_KEY) || '[]'); }catch(e){ return []; } }
+function addNope(id){ const l = nope(); if(!l.includes(id)) l.push(id); try{ localStorage.setItem(NOPE_KEY, JSON.stringify(l.slice(-500))); }catch(e){} PROFILE = null; }
+function tasteW(id){ const L = LISTE[id] || {}; if(L.r) return L.r >= 9 ? 3 : L.r >= 8 ? 2 : L.r >= 7 ? 1 : L.r >= 6 ? 0.3 : L.r >= 5 ? -0.6 : -2; if(L.f) return 2; if(L.s === 'v') return 0.4; if(L.s === 'd') return 0.25; return 0; }
+let PROFILE = null;
+function profile(){
+  if(PROFILE) return PROFILE;
+  const P = { art: new Map(), tag: new Map(), fam: new Map(), dec: new Map(), best: { art: new Map(), tag: new Map() }, rated: 0 };
+  const add = (m, k, v) => { if(k) m.set(k, (m.get(k) || 0) + v); };
+  const feed = (e, w, id) => { const a = norm(e.a); add(P.art, a, w); if(w > 0 && (!P.best.art.has(a) || P.best.art.get(a).w < w)) P.best.art.set(a, { id, w });
+    e.g.forEach(t=>{ add(P.tag, t, w); if(w > 0 && (!P.best.tag.has(t) || P.best.tag.get(t).w < w)) P.best.tag.set(t, { id, w }); }); add(P.fam, e.m, w * 0.6); add(P.dec, decOf(e), w * 0.5); };
+  Object.keys(LISTE).forEach(id=>{ const w = tasteW(id), e = w && BY_ID.get(id); if(!e) return; if(LISTE[id].r || LISTE[id].f) P.rated++; feed(e, w, id); });
+  nope().forEach(id=>{ const e = BY_ID.get(id); if(e) feed(e, -0.7, id); });
+  const mx = m => Math.max(1, ...[...m.values()].map(Math.abs));
+  P.ma = mx(P.art); P.mt = mx(P.tag); P.mf = mx(P.fam); P.my = mx(P.dec);
+  return PROFILE = P;
+}
+function recScore(e, P){
+  const A = (P.art.get(norm(e.a)) || 0) / P.ma; let T = 0; e.g.forEach(t=>{ T += P.tag.get(t) || 0; }); T = e.g.length ? T / e.g.length / P.mt : 0;
+  const F = (P.fam.get(e.m) || 0) / P.mf, Y = (P.dec.get(decOf(e)) || 0) / P.my, Q = e.tier === 3 ? 0.3 : e.tier === 2 ? 0.2 : e.tier === 1 ? 0.1 : e.gem ? 0.1 : 0;
+  const s = 1.3 * A + 1.0 * T + 0.4 * F + 0.3 * Y + Q, top = [[1.3 * A, 'art'], [1.0 * T, 'tag'], [0.4 * F, 'fam'], [0.3 * Y, 'dec']].sort((a, b)=>b[0] - a[0])[0];
+  let why = '';
+  if(top[1] === 'art' && A > 0){ const b = P.best.art.get(norm(e.a)); if(b) why = `Dello stesso artista di «${BY_ID.get(b.id).t}»`; }
+  else if(top[1] === 'tag' && T > 0){ const l = e.g.filter(t=>(P.tag.get(t) || 0) > 0).sort((a, b)=>P.tag.get(b) - P.tag.get(a)).slice(0, 2); if(l.length) why = `Generi che ami: ${l.join(' e ')}`; }
+  else if(top[1] === 'fam' && F > 0) why = `Il tuo genere: ${famName(e.m)}`;
+  else if(top[1] === 'dec' && Y > 0) why = `La tua epoca: anni ${decLabel(decOf(e))}`;
+  return { s, why: why || 'Vicino ai tuoi gusti' };
+}
+function recCandidates(){ const no = new Set(nope()); return IDX.filter(e=>(e.tier || e.gem || (e.r < 4000 && e.ty === 'A' && (!HAS_W || e.w))) && !e.sus && !LISTE[e.id] && !no.has(e.id)); }
+function recommend(n){
+  const P = profile(); if(P.rated < 5) return { cold: true, rated: P.rated, list: [] };
+  const scored = recCandidates().map(e=>Object.assign({ e }, recScore(e, P))), main = scored.filter(x=>x.s > 0.35).sort((a, b)=>b.s - a.s), out = [], per = new Map();
+  for(const x of main){ const a = norm(x.e.a); if((per.get(a) || 0) >= 2) continue; per.set(a, (per.get(a) || 0) + 1); out.push(x); if(out.length >= n) break; }
+  const outside = scored.filter(x=>x.s < 0.15 && x.s > -0.05 && x.e.tier >= 2 && !out.includes(x) && !((P.fam.get(x.e.m) || 0) < 0) && !x.e.g.some(t=>(P.tag.get(t) || 0) < 0)).slice(0, 40);   // fuori dai soliti, ma mai verso ciò che hai bocciato   // "fuori dai tuoi soliti": capolavori lontani dal profilo
+  for(let pos = 4; pos < out.length && outside.length; pos += 5){ const x = outside.splice(Math.floor(Math.random() * Math.min(outside.length, 12)), 1)[0]; out.splice(pos, 0, Object.assign({}, x, { why: `Fuori dai tuoi soliti: ${tierLabel(x.e).replace(/^[^ ]+ /, '').toLowerCase()} da scoprire`, out: true })); }
+  return { cold: false, rated: P.rated, list: out.slice(0, n) };
+}
+function perTeStrip(){
+  const r = recommend(14);
+  if(r.cold) return `<h2 class="sec">✨ Per te<a class="more" href="#perte">Come funziona</a></h2><p class="note">Dai un voto da 1 a 10 ad almeno 5 dischi che hai ascoltato (ne hai votati ${r.rated}): qui compariranno consigli su misura, ognuno con il suo perché.</p>`;
+  return r.list.length ? strip('✨ Per te', r.list.map(x=>x.e), '#perte') : '';
+}
+function viewPerTe(){
+  setNav(''); const r = recommend(24);
+  V().innerHTML = `<h1 class="pg">✨ Per te</h1><p class="lead">Dischi che non hai ancora ascoltato, scelti in base ai tuoi voti, ai preferiti e a ciò che hai ascoltato. Ogni consiglio dice il suo perché; uno ogni cinque è "fuori dai tuoi soliti". "Non mi interessa" lo toglie e affina i consigli.</p>`
+    + (r.cold ? `<p class="lead">Vota almeno 5 dischi${r.rated ? ` (ne hai votati ${r.rated})` : ''}: dalla pagina di un disco, con i numeri da 1 a 10, oppure segnandolo come preferito.</p>`
+      : `<div class="st-res">${r.list.map(x=>adCard(x.e, (x.out ? '🧭 ' : '✨ ') + x.why).replace('<a class="btn" href="#album/' + x.e.id + '">Apri il disco</a>', `<a class="btn" href="#album/${x.e.id}">Apri il disco</a><button class="btn" type="button" data-nope="${x.e.id}">Non mi interessa</button>`)).join('')}</div>`);
+  V().querySelectorAll('[data-nope]').forEach(b=>b.onclick = () => { addNope(b.dataset.nope); toast('Non te lo proporrò più'); viewPerTe(); });
+}
+function similarTo(e0, n){   // "Se ti è piaciuto questo": stessi generi, stessa famiglia ed epoca, altri artisti
+  const t0 = new Set(e0.g), d0 = decOf(e0), a0 = norm(e0.a), no = new Set(nope());
+  const l = IDX.filter(e=>e !== e0 && e.ty === 'A' && norm(e.a) !== a0 && !e.sus && !no.has(e.id) && (e.tier || e.gem || e.r < 6000) && (!HAS_W || e.w)).map(e=>{
+    const inter = e.g.filter(t=>t0.has(t)).length, jac = inter / Math.max(1, new Set([...e.g, ...e0.g]).size);
+    return { e, inter, s: 1.4 * jac + (e.m && e.m === e0.m ? 0.3 : 0) + (decOf(e) === d0 ? 0.25 : 0) + (e.tier === 3 ? 0.2 : e.tier === 2 ? 0.15 : e.tier === 1 || e.gem ? 0.1 : 0) + 0.25 * (1 - Math.min(e.r, 20000) / 20000) }; })
+    .filter(x=>x.inter >= 1 && x.s >= 0.9).sort((a, b)=>b.s - a.s);
+  const out = [], per = new Set(); for(const x of l){ const a = norm(x.e.a); if(per.has(a)) continue; per.add(a); out.push(x.e); if(out.length >= n) break; }
+  return out;
+}
+function addSimilar(id){ const e = BY_ID.get(id); if(!e || !V()) return; const l = similarTo(e, 14); if(l.length) V().insertAdjacentHTML('beforeend', strip('Se ti è piaciuto questo', l, '', '')); }
+/* 🎂 Compiono gli anni: anniversari tondi in questi giorni */
+function anniversaries(){
+  const now = new Date(), md = (m, d) => m * 31 + d, today = md(now.getMonth() + 1, now.getDate());
+  return IDX.filter(e=>{ if(!e.d || e.sus || e.ty !== 'A' || !(e.tier || e.gem || e.r < 3000) || (HAS_W && !e.w)) return false; const n = YEAR - e.y; if(![10, 20, 25, 30, 40, 50, 60, 70, 75, 80].includes(n)) return false;
+    return Math.abs(md(+e.d.slice(5, 7), +e.d.slice(8, 10)) - today) <= 7; }).sort((a, b)=>a.r - b.r).slice(0, 16);
+}
+function annivStrip(){ const l = anniversaries(); return l.length ? `<h2 class="sec">🎂 Compiono gli anni</h2><div class="strip">${l.map(e=>`<a class="card" href="#album/${e.id}">${cover(e)}<b>${esc(e.t)}</b><small>${esc(e.a)}</small><small style="color:var(--amber2); font-weight:650">🎂 ${YEAR - e.y} anni · ${esc(fmtD(e.d).replace(/ \d{4}$/, ''))}</small></a>`).join('')}</div>` : ''; }
+
 /* ---------- navigazione ---------- */
 function route(){
   if(!IDX.length) return;
   const h = decodeURIComponent(location.hash.replace(/^#/, '')), [k, ...rest] = h.split('/'), arg = rest.join('/');
   window.scrollTo(0, 0);
-  if(k === 'album') return viewAlbum(arg);
+  if(k === 'album'){ viewAlbum(arg); addSimilar(arg); return; }
+  if(k === 'adesso') return viewAdesso();
+  if(k === 'perte') return viewPerTe();
   if(k === 'artista') return viewArtist(arg);
   if(k === 'artisti') return viewArtists(arg);
   if(k === 'famiglia') return viewFamily(arg);
