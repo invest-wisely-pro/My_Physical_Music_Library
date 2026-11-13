@@ -144,7 +144,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -203,7 +203,8 @@ function build(txt){
   HAS_CL = false;   // le "classifiche della critica" su Wikidata si sono rivelate quasi vuote (47 dischi su 80.000): non si usano
   HAS_SL = IDX.filter(e=>e.sl).length >= 5000;   // in quante Wikipedia del mondo il disco ha un articolo: difficilissimo da falsificare
   // dischi sospetti: medie perfette con 5 o più voti (Kid Indigo, Mississippi Mass Choir…); con le lingue, anche dischi "famosissimi" senza un solo articolo
-  for(const e of IDX) e.sus = (e.rv >= 98 && e.vc >= 5) || (HAS_SL && e.r < 3000 && !e.sl && e.vc >= 8 && e.rv >= 85);
+  for(const e of IDX) e.sus = (e.rv >= 98 && e.vc >= 5) || (e.rv >= 98 && e.vc >= 1 && e.r < 2000 && !(HAS_SL && e.sl >= 3)) ||   // medie perfette: da 5 voti, o da pochissimi ma con una "fama" altissima
+    (HAS_SL && e.r < 3000 && !e.sl && e.vc >= 8 && e.rv >= 85);
   const trusted = e => e.ty === 'A' && !e.sus && !(e.rv >= 98) && (!HAS_W || e.w) && (!HAS_SL || e.sl >= 2);
   const base = IDX.filter(e=>e.vc >= 5 && e.rv && e.rv < 98), C = base.reduce((s, e)=>s + e.rv, 0) / Math.max(1, base.length);
   const score = (e, m) => (e.vc && e.rv ? (e.vc * e.rv + m * C) / (e.vc + m) : C) + (HAS_CL ? 4 * Math.min(e.cl, 5) : 0) + Math.min(e.aw, 4) + (HAS_SL ? 2.2 * Math.log2(1 + Math.min(e.sl, 80)) : 0);   // premi e notorietà nel mondo: contano, ma non quanto il voto
@@ -215,17 +216,26 @@ function build(txt){
     CAPO_FAM[k] = capped(l.sort((a, b)=>b.bf - a.bf || a.r - b.r), 2, 16); }
   MP = new Set(CAPO_TOP.map(e=>e.id)); Object.values(CAPO_FAM).forEach(l=>l.forEach(e=>MP.add(e.id)));
   RATED = MP.size >= 20;
+  const bg = e => (e.vc * e.rv + 10 * C) / (e.vc + 10);   // gemme: meno votate, peso più leggero; tra il 3.000° e il 15.000° posto
+  // gemme: amatissime da chi le conosce, lontane dai più famosi. Senza tifoserie (artisti con tutti i dischi votati oltre 4,5),
+  // un solo disco per artista, al massimo 4 per genere, niente titoli doppi; calcolate prima dei gran dischi, così non si sovrappongono
+  const fandom = new Set([...ARTISTS.values()].filter(A=>{ const r = A.list.filter(e=>e.vc >= 5 && e.rv).map(e=>e.rv).sort((a, b)=>a - b); return r.length >= 3 && r[Math.floor(r.length / 2)] >= 90; }).map(A=>A.k));
+  const artTop = new Map(); for(const e of IDX){ const k = norm(e.a); if(!artTop.has(k)) artTop.set(k, e.r); }   // il disco più famoso di ogni artista (l'indice è già in ordine di fama)
+  const gemCand = IDX.filter(e=>e.vc >= 6 && e.rv && e.r >= 3000 && e.r < 15000 && trusted(e) && !MP.has(e.id) && !fandom.has(norm(e.a)) && artTop.get(norm(e.a)) >= 1200 && (!HAS_SL || e.sl < 20) && bg(e) >= 82)   // nascoste davvero: l'artista non ha dischi tra i 1.200 più famosi.sort((a, b)=>bg(b) - bg(a) || a.r - b.r);
+  GEMS = []; { const perA = new Set(), perF = new Map(), titles = new Set();
+    for(const e of gemCand){ const a = norm(e.a), t = a + '|' + norm(e.t).replace(/\b(deluxe|remaster(ed)?|edition|expanded)\b.*$/, '').trim(), f = e.m || '-';
+      if(perA.has(a) || titles.has(t) || (perF.get(f) || 0) >= 3) continue; perA.add(a); titles.add(t); perF.set(f, (perF.get(f) || 0) + 1); GEMS.push(e); if(GEMS.length >= 60) break; } }
+  GEMS.forEach(e=>{ e.gem = true; });
   // i livelli, come nell'Atlante del Cinema: ✦✦ i 50 più grandi, ✦ gli altri capolavori, ◆ i gran dischi (gli 800 migliori dopo i capolavori, al massimo 3 per artista)
   ABS = new Set(CAPO_TOP.slice(0, 50).map(e=>e.id));
-  GRAN = new Set(capped(IDX.filter(e=>trusted(e) && !MP.has(e.id) && e.vc >= 8 && e.rv && e.r < 30000).sort((a, b)=>b.br - a.br || a.r - b.r), 3, 800).map(e=>e.id));
+  GRAN = new Set(capped(IDX.filter(e=>trusted(e) && !MP.has(e.id) && !e.gem && e.vc >= 8 && e.rv && e.r < 30000).sort((a, b)=>b.br - a.br || a.r - b.r), 3, 800).map(e=>e.id));
   for(const e of IDX) e.tier = ABS.has(e.id) ? 3 : MP.has(e.id) ? 2 : GRAN.has(e.id) ? 1 : 0;
-  const bg = e => (e.vc * e.rv + 10 * C) / (e.vc + 10);   // gemme: meno votate, peso più leggero; tra il 3.000° e il 15.000° posto
-  GEMS = capped(IDX.filter(e=>e.vc >= 8 && e.rv && e.r >= 3000 && e.r < 15000 && trusted(e) && !MP.has(e.id) && bg(e) >= 85).sort((a, b)=>bg(b) - bg(a) || a.r - b.r), 2, 150);
-  GEMS.forEach(e=>{ e.gem = true; });
   ACCLAIM = HAS_CL ? IDX.filter(e=>e.cl >= 3 && (!HAS_W || e.w) && e.ty[0] === 'A').sort((a, b)=>b.cl - a.cl || a.r - b.r).slice(0, 300) : [];
   TBYT = null;
 }
 
+const per2 = l => { const c = new Map(); return l.filter(e=>{ const k = norm(e.a), n = c.get(k) || 0; c.set(k, n + 1); return n < 2; }); };   // al massimo 2 dischi per artista negli elenchi
+const cred = e => !e.sus && (!HAS_W || e.w);   // credibile: non sospetto e, quando l'indice lo dice, con una voce su Wikidata
 const masterpieces = () => IDX.filter(e=>MP.has(e.id)).sort((a, b)=>b.br - a.br || a.r - b.r);
 const VARIOUS = /^(various artists|various|verschiedene interpreten|artistes divers|\[unknown\]|unknown artist|anonymous|\[no artist\]|traditional)$/i;
 const MACRO = [
@@ -245,7 +255,7 @@ const MACRO = [
 ];
 // per riconoscere il genere si guardano prima le famiglie più specifiche (il metal prima del rock, il punk prima del rock…)
 const MACRO_ORDER = ['metal', 'punk', 'hiphop', 'elettronica', 'jazz', 'soul', 'classica', 'blues', 'country', 'reggae', 'folk', 'pop', 'rock'];
-function novita(){ return IDX.filter(e=>e.y >= YEAR - 1 && !e.sus && (!e.d || e.d <= TODAY)).sort((a, b)=>(b.d || String(b.y)).localeCompare(a.d || String(a.y)) || a.r - b.r); }
+function novita(){ const one = new Set(); return IDX.filter(e=>e.y >= YEAR - 1 && cred(e) && !e.ty.includes('C') && !VARIOUS.test(e.a) && (!e.d || e.d <= TODAY)).sort((a, b)=>(b.d || String(b.y)).localeCompare(a.d || String(a.y)) || a.r - b.r).filter(e=>{ const k = norm(e.a); if(one.has(k)) return false; one.add(k); return true; }); }   // un disco per artista
 
 /* ---------- la tua discoteca: si legge, non si tocca ---------- */
 function readCollection(){
@@ -402,7 +412,7 @@ async function wikiInfobox(title){
 const PAL = ['#3B2F4F', '#2F4A4F', '#4F3A2F', '#2F3F4F', '#4A2F3A', '#35452F', '#4F4A2F', '#2F4F40', '#40304F', '#4F2F2F'];
 const tileBg = e => PAL[parseInt(e.id.slice(0, 2), 16) % PAL.length];
 const coverUrl = (e, size) => `https://coverartarchive.org/release-group/${uuid(e.id)}/front-${size || 250}`;
-const cover = (e, size) => `<div class="cv" style="--tilebg:${tileBg(e)}"><img src="${coverUrl(e, size)}" alt="" loading="lazy" onerror="this.remove()"><span class="ph"><span>${esc(e.t)}</span><small>${esc(e.a)}</small></span>${e.tier ? `<i class="mk">${e.tier === 3 ? '✦✦' : e.tier === 2 ? '✦' : '◆'}</i>` : ''}${OWN.has(e.id) ? '<i class="own">✓</i>' : ''}</div>`;
+const cover = (e, size) => `<div class="cv" style="--tilebg:${tileBg(e)}"><img src="${coverUrl(e, size)}" alt="" loading="lazy" onerror="this.remove()"><span class="ph"><span>${esc(e.t)}</span><small>${esc(e.a)}</small></span>${e.tier ? `<i class="mk">${e.tier === 3 ? '✦✦' : e.tier === 2 ? '✦' : '◆'}</i>` : e.gem ? '<i class="mk">💎</i>' : ''}${OWN.has(e.id) ? '<i class="own">✓</i>' : ''}</div>`;
 const card = e => `<a class="card" href="#album/${e.id}">${cover(e)}<b>${esc(e.t)}</b><small>${esc(e.a)}${e.y ? ' · ' + e.y : ''}</small></a>`;
 function badges(e){ const L = LISTE[e.id] || {}, b = [];
   if(MP.has(e.id)) b.push('<span class="bd mp">✦ Capolavoro</span>');
@@ -421,16 +431,16 @@ function setNav(k){ document.querySelectorAll('#nav a').forEach(a=>a.classList.t
 
 /* ---------- Esplora ---------- */
 const LISTS = {
-  famosi: ['I più famosi', () => IDX.filter(e=>!e.sus), 'Gli album più conosciuti, dal più famoso.'],
+  famosi: ['I più famosi', () => IDX.filter(e=>cred(e) && !VARIOUS.test(e.a)), 'Gli album più conosciuti, dal più famoso.'],
   grandi: ['◆ Gran dischi', () => IDX.filter(e=>e.tier === 1).sort((a, b)=>b.br - a.br || a.r - b.r), 'Gli 800 album migliori dopo i capolavori: un gradino sotto, ma da ascoltare. Al massimo tre per artista.'],
   capolavori: ['✦ Capolavori', masterpieces, 'Gli album in studio più amati dagli utenti di MusicBrainz: servono molti voti alti, non pochi voti perfetti. Al massimo tre dischi per artista.'],
   acclamati: ['📰 Acclamati dalla critica', () => ACCLAIM, 'I dischi presenti nel maggior numero di classifiche e opere di riferimento della critica (come le liste di Rolling Stone o «1001 album da ascoltare»), secondo Wikidata.'],
-  gemme: ['💎 Gemme nascoste', () => GEMS, 'Dischi amatissimi da chi li conosce, ma lontani dai più famosi.'],
+  gemme: ['💎 Gemme nascoste', () => GEMS, 'Dischi amatissimi da chi li conosce, di artisti lontani dai più famosi: uno per artista, al massimo tre per genere.'],
   novita: ['🆕 Novità', novita, 'Le uscite di quest\'anno e dello scorso, dalla più recente.'],
-  live: ['🎤 Dal vivo', () => IDX.filter(e=>e.ty.includes('L')), 'I concerti diventati dischi.'],
-  colonne: ['🎬 Colonne sonore', () => IDX.filter(e=>e.ty.includes('S')), 'La musica dei film, delle serie e dei videogiochi.'],
-  raccolte: ['📀 Raccolte', () => IDX.filter(e=>e.ty.includes('C')), 'Antologie e "greatest hits".'],
-  ep: ['💿 EP', () => IDX.filter(e=>e.ty[0] === 'E'), 'I dischi brevi.'],
+  live: ['🎤 Dal vivo', () => per2(IDX.filter(e=>e.ty.includes('L') && cred(e) && !VARIOUS.test(e.a))), 'I concerti diventati dischi.'],
+  colonne: ['🎬 Colonne sonore', () => IDX.filter(e=>e.ty.includes('S') && cred(e)), 'La musica dei film, delle serie e dei videogiochi.'],
+  raccolte: ['📀 Raccolte', () => per2(IDX.filter(e=>e.ty.includes('C') && cred(e) && !VARIOUS.test(e.a))), 'Antologie e "greatest hits".'],
+  ep: ['💿 EP', () => per2(IDX.filter(e=>e.ty[0] === 'E' && cred(e) && !VARIOUS.test(e.a))), 'I dischi brevi.'],
   discoteca: ['✓ Nella tua discoteca', () => IDX.filter(e=>OWN.has(e.id)), 'I dischi della tua collezione che sono anche nell\'atlante.'],
 };
 function decades(){ const c = new Map(); for(const e of IDX){ if(e.y < 1940 || e.y > YEAR) continue; const d = Math.floor(e.y / 10) * 10; c.set(d, (c.get(d) || 0) + 1); } return [...c.entries()].filter(x=>x[1] >= 30).sort((a, b)=>a[0] - b[0]).map(([d, n])=>({ d, n })); }
@@ -444,7 +454,7 @@ function viewHome(){
     + strip('📰 Acclamati dalla critica', ACCLAIM, '#lista/acclamati')
     + strip('🆕 Novità', novita(), '#lista/novita', 'Vedi tutte')
     + annivStrip()
-    + strip('I più famosi', IDX.filter(e=>!e.sus), '#lista/famosi')
+    + strip('I più famosi', LISTS.famosi[1](), '#lista/famosi')
     + strip('✓ Nella tua discoteca', LISTS.discoteca[1](), '#lista/discoteca')
     + CLS.filter(c=>c.pin && c.items.length).map(c=>strip('🏆 ' + esc(c.name), c.items.map(id=>BY_ID.get(id)).filter(Boolean), '#classifica/' + c.id, 'Apri')).join('')
     + (scop.length ? `<h2 class="sec">Scopri</h2><div class="genres">${scop.map(([k, n])=>`<a class="genre" href="#lista/${k}"><b>${esc(LISTS[k][0])}</b><i>${fmtN(n)}</i></a>`).join('')}</div>` : '')
@@ -454,8 +464,8 @@ function viewHome(){
 }
 function viewList(k, arg){
   let title, base, lead;
-  if(k === 'genere'){ title = cap(arg); base = IDX.filter(e=>e.g.includes(arg)); lead = 'Dal più famoso.'; }
-  else if(k === 'decennio'){ const d = parseInt(arg, 10) || 1970; title = `Gli anni ${decLabel(d)}`; base = IDX.filter(e=>e.y >= d && e.y < d + 10); lead = 'Dal più famoso.'; }
+  if(k === 'genere'){ title = cap(arg); base = IDX.filter(e=>e.g.includes(arg) && cred(e)); lead = 'Dal più famoso.'; }
+  else if(k === 'decennio'){ const d = parseInt(arg, 10) || 1970; title = `Gli anni ${decLabel(d)}`; base = IDX.filter(e=>e.y >= d && e.y < d + 10 && cred(e) && !VARIOUS.test(e.a)); lead = 'Dal più famoso.'; }
   else { if(k === 'capolavori') return viewMasterpieces(); const L = LISTS[k]; if(!L) return viewHome(); title = L[0]; base = L[1](); lead = L[2]; }
   setNav(k === 'capolavori' ? 'capolavori' : '');
   if(k === 'capolavori' && !RATED) lead = 'I capolavori arrivano con il prossimo aggiornamento dell\'indice dei dischi, che porterà anche i voti degli utenti di MusicBrainz. Intanto trovi i dischi più famosi in Esplora.';
@@ -617,7 +627,7 @@ function similarArtists(A){
 }
 function viewFamily(k){
   const F = MACRO.find(x=>x[0] === k); if(!F) return viewHome(); setNav('');
-  const list = IDX.filter(e=>e.m === k), refs = REF[k] || [], capo = CAPO_FAM[k] || [];
+  const list = IDX.filter(e=>e.m === k && cred(e) && !VARIOUS.test(e.a)), refs = REF[k] || [], capo = CAPO_FAM[k] || [];
   const acc = HAS_CL ? list.filter(e=>e.cl >= 2 && (!HAS_W || e.w)).sort((a, b)=>b.cl - a.cl || a.r - b.r) : [];
   let n = 48;
   V().innerHTML = `<p class="note"><a class="lnk" href="#generi">← Tutti i generi</a></p><h1 class="pg">${esc(F[1])}</h1><p class="lead">${fmtN(list.length)} dischi nell'atlante.</p>`
