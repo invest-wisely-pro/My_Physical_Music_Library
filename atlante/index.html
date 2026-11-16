@@ -181,6 +181,16 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 .quick{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 2px;} .quick .btn{flex:none;}
 @media (max-width:760px){ .quick{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:12px calc(-1 * max(16px,4vw)) 0; padding:2px max(16px,4vw);} .quick::-webkit-scrollbar{display:none;} }
 .tric{display:inline-block; width:22px; height:15px; border-radius:3px; margin-right:9px; vertical-align:-1px; background:linear-gradient(90deg, #1F8A4C 0 33.4%, #F2EFE6 33.4% 66.6%, #C8343A 66.6%); box-shadow:0 0 0 1px rgba(255,255,255,.12);} h1.pg .tric{width:30px; height:20px; margin-right:12px; vertical-align:1px;}
+.strip.round{grid-auto-columns:124px; gap:10px;}
+.pa{display:block; min-width:0; text-align:center;} .pa b{display:block; font-size:14px; font-weight:650; line-height:1.25; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;} .pa small{display:block; margin-top:2px; font-size:12px; color:var(--paper3);}
+.pa .av{position:relative; display:block; width:112px; height:112px; margin:0 auto 9px; border-radius:50%; overflow:hidden; background:var(--tilebg, var(--s3)); box-shadow:0 0 0 1px rgba(255,255,255,.1), 0 8px 20px rgba(0,0,0,.35); transition:transform .18s ease, box-shadow .18s ease;}
+.pa .av i{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:800; font-size:30px; letter-spacing:-.02em; color:rgba(255,255,255,.82);}
+.pa .av img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+@media (hover:hover){ .pa:hover .av{transform:translateY(-3px) scale(1.04); box-shadow:0 0 0 2px var(--paper), 0 14px 28px rgba(0,0,0,.5);} }
+.pgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:22px 8px; margin-top:6px;}
+#ittabs{margin:14px 0 4px;} #famtabs a.on{background:var(--amber); border-color:var(--amber); color:var(--ink);} #ittabs a.on{background:var(--paper); border-color:var(--paper); color:var(--ink);}
+@media (max-width:760px){ #ittabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-left:calc(-1 * max(16px,4vw)); margin-right:calc(-1 * max(16px,4vw)); padding:0 max(16px,4vw);} #ittabs::-webkit-scrollbar{display:none;} #ittabs a{flex:none;}
+  .strip.round{grid-auto-columns:104px;} .pa .av{width:92px; height:92px;} .pa .av i{font-size:25px;} .pgrid{grid-template-columns:repeat(auto-fill, minmax(98px, 1fr)); gap:18px 6px;} }
 /* le file di copertine */
 .strip{scrollbar-width:none; padding:8px 2px 10px; margin:0 -2px;} .strip::-webkit-scrollbar{display:none;}
 .card .cv{transition:transform .18s ease, box-shadow .18s ease;}
@@ -208,7 +218,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.3';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -610,54 +620,99 @@ function startHere(A){
    aggiornamento dell'indice); un artista è italiano se lo è almeno un terzo dei suoi dischi presenti su Wikidata. In più, una
    selezione di classici (ITA_CANON) scelta a mano: sono italiani comunque, e aprono la sezione anche prima che l'indice porti la colonna. */
 const ITA_CANON = [["Lucio Battisti","Il mio canto libero"],["Lucio Battisti","Anima latina"],["Lucio Battisti","Una donna per amico"],["Lucio Battisti","Emozioni"],["Lucio Battisti","Il nostro caro angelo"],["Lucio Battisti","Umanamente uomo: il sogno"],["Lucio Battisti","Don Giovanni"],["Fabrizio De André","Crêuza de mä"],["Fabrizio De André","Non al denaro non all’amore né al cielo"],["Fabrizio De André","La buona novella"],["Fabrizio De André","Storia di un impiegato"],["Fabrizio De André","Rimini"],["Fabrizio De André","Le nuvole"],["Fabrizio De André","Anime salve"],["Fabrizio De André","Tutti morimmo a stento"],["Lucio Dalla","Lucio Dalla"],["Lucio Dalla","Dalla"],["Lucio Dalla","Com’è profondo il mare"],["Lucio Dalla","Anidride solforosa"],["Franco Battiato","La voce del padrone"],["Franco Battiato","L’era del cinghiale bianco"],["Franco Battiato","Patriots"],["Franco Battiato","Fetus"],["Franco Battiato","Pollution"],["Franco Battiato","Fisiognomica"],["Franco Battiato","L’arca di Noè"],["Francesco De Gregori","Rimmel"],["Francesco De Gregori","Bufalo Bill"],["Francesco De Gregori","De Gregori"],["Francesco De Gregori","Titanic"],["Francesco Guccini","Radici"],["Francesco Guccini","Via Paolo Fabbri 43"],["Francesco Guccini","Stanze di vita quotidiana"],["Paolo Conte","Paolo Conte"],["Paolo Conte","Un gelato al limon"],["Paolo Conte","Aguaplano"],["Vasco Rossi","Bollicine"],["Vasco Rossi","Siamo solo noi"],["Vasco Rossi","Vado al massimo"],["Vasco Rossi","C’è chi dice no"],["Pino Daniele","Nero a metà"],["Pino Daniele","Terra mia"],["Pino Daniele","Pino Daniele"],["Pino Daniele","Vai mo’"],["Premiata Forneria Marconi","Storia di un minuto"],["Premiata Forneria Marconi","Per un amico"],["Banco del Mutuo Soccorso","Banco del Mutuo Soccorso"],["Banco del Mutuo Soccorso","Darwin!"],["Banco del Mutuo Soccorso","Io sono nato libero"],["Area","Arbeit macht frei"],["Area","Crac!"],["Le Orme","Felona e Sorona"],["Le Orme","Uomo di pezza"],["Museo Rosenbach","Zarathustra"],["Il Balletto di Bronzo","Ys"],["New Trolls","Concerto grosso per i New Trolls"],["Giorgio Gaber","Far finta di essere sani"],["Giorgio Gaber","Il signor G"],["Rino Gaetano","Mio fratello è figlio unico"],["Rino Gaetano","Nuntereggae più"],["Rino Gaetano","Aida"],["Edoardo Bennato","Burattino senza fili"],["Edoardo Bennato","Sono solo canzonette"],["Edoardo Bennato","I buoni e i cattivi"],["Ivano Fossati","La pianta del tè"],["Roberto Vecchioni","Samarcanda"],["Antonello Venditti","Lilly"],["Antonello Venditti","Sotto il segno dei pesci"],["Claudio Baglioni","Questo piccolo grande amore"],["Claudio Baglioni","Strada facendo"],["Claudio Baglioni","La vita è adesso"],["Renato Zero","Zerofobia"],["Lucio Dalla & Francesco De Gregori","Banana Republic"],["Matia Bazar","Tango"],["Gianna Nannini","Latin Lover"],["Gianna Nannini","Profumo"],["Luigi Tenco","Luigi Tenco"],["Angelo Branduardi","Alla fiera dell’est"],["CCCP – Fedeli alla linea","1964‐1985 Affinità‐divergenze fra il compagno Togliatti e noi"],["C.S.I.","Linea gotica"],["C.S.I.","Ko de mondo"],["Litfiba","17 re"],["Litfiba","Desaparecido"],["Litfiba","El diablo"],["Afterhours","Hai paura del buio?"],["Marlene Kuntz","Catartica"],["Marlene Kuntz","Il vile"],["Subsonica","Microchip emozionale"],["Verdena","Wow"],["Verdena","Requiem"],["Baustelle","La malavita"],["Baustelle","Amen"],["Carmen Consoli","Mediamente isterica"],["Vinicio Capossela","Canzoni a manovella"],["Vinicio Capossela","Ovunque proteggi"],["Elio e le Storie Tese","Elio samaga hukapan kariyana turu"],["Elio e le Storie Tese","İtalyan, rum casusu çikti"],["Jovanotti","Lorenzo 1994"],["Ligabue","Buon compleanno Elvis"],["Almamegretta","Sanacore"],["99 Posse","Curre curre guagliò"],["Sangue Misto","SxM"],["Frankie hi‐nrg mc","Verba manent"],["Articolo 31","Così com’è"],["Fabri Fibra","Tradimento"],["Fabri Fibra","Mr. Simpatia"],["Marracash","Persona"],["Caparezza","Verità supposte"],["Caparezza","Habemus Capa"],["Caparezza","Le dimensioni del mio caos"],["Ennio Morricone","C’era una volta il West"],["Ennio Morricone","Il buono, il brutto, il cattivo"],["Ennio Morricone","The Mission"],["Goblin","Profondo rosso"],["Goblin","Suspiria"],["Giorgio Moroder","From Here to Eternity"],["Ludovico Einaudi","Le onde"],["Ludovico Einaudi","Divenire"],["Ludovico Einaudi","Una mattina"],["Måneskin","Teatro d’ira, Vol. I"],["Mahmood","Gioventù bruciata"],["Calcutta","Mainstream"],["I Cani","Il sorprendente album d’esordio de I Cani"],["Brunori Sas","A casa tutto bene"],["Liberato","Liberato"],["Iosonouncane","Die"],["Iosonouncane","Ira"],["Adriano Celentano","Azzurro"],["Zucchero","Oro, incenso & birra"],["Zucchero","Blue’s"]];
+/* Stranieri che Wikidata dà anche come cittadini italiani (o omonimi): fuori dalla sezione. */
+/* I grandi nomi di casa nostra: pesano di più nella sezione, perché su MusicBrainz e sulle Wikipedia del mondo sono poco documentati
+   rispetto a quanto sono amati in Italia. Una scelta fatta a mano, come i classici. */
+const ITA_BIG = new Set(["Laura Pausini","Eros Ramazzotti","Tiziano Ferro","Elisa","Marco Mengoni","Annalisa","Alessandra Amoroso","Emma","Giorgia","Negramaro","Ultimo","Cesare Cremonini","Jovanotti","Ligabue","Vasco Rossi","Zucchero","Zucchero Sugar Fornaciari","Mina","Adriano Celentano","Lucio Dalla","Lucio Battisti","Fabrizio De André","Francesco De Gregori","Franco Battiato","Pino Daniele","Claudio Baglioni","Renato Zero","Gianni Morandi","Antonello Venditti","Pooh","Nomadi","Gianna Nannini","Loredana Bertè","Mia Martini","Ornella Vanoni","Patty Pravo","Fiorella Mannoia","Biagio Antonacci","Max Pezzali","883","Nek","Raf","Umberto Tozzi","Riccardo Cocciante","Francesco Guccini","Paolo Conte","Edoardo Bennato","Rino Gaetano","Giorgio Gaber","Luigi Tenco","Roberto Vecchioni","Ivano Fossati","Andrea Bocelli","Luciano Pavarotti","Il Volo","Måneskin","Mahmood","BLANCO","Madame","Elodie","Angelina Mango","Lazza","Sfera Ebbasta","Marracash","Guè","Gué Pequeno","Fabri Fibra","Salmo","Caparezza","J-Ax","Articolo 31","Fedez","Ghali","Achille Lauro","Irama","Coez","Calcutta","Gazzelle","Thegiornalisti","Tommaso Paradiso","Pinguini Tattici Nucleari","Modà","Subsonica","Litfiba","Afterhours","Verdena","Baustelle","Negrita","Le Vibrazioni","Carmen Consoli","Malika Ayane","Arisa","Noemi","Francesca Michielin","Levante","Francesco Gabbani","Diodato","Ermal Meta","Fabrizio Moro","Brunori Sas","Daniele Silvestri","Max Gazzè","Niccolò Fabi","Samuele Bersani","Vinicio Capossela","Elio e le Storie Tese","Gigi D’Alessio","Nino D’Angelo","Massimo Ranieri","Al Bano","Al Bano & Romina Power","Toto Cutugno","Ricchi e Poveri","Matia Bazar","Raffaella Carrà","Rita Pavone","Domenico Modugno","Ennio Morricone","Ludovico Einaudi","Premiata Forneria Marconi","Banco del Mutuo Soccorso","Area","Le Orme","Goblin","Giorgio Moroder","Rkomi","Geolier","Tananai","Mr.Rain","Sangiovanni","The Kolors","Colapesce","Colapesce Dimartino","Lucio Corsi","Olly","Emis Killa","Clementino","Rocco Hunt","Tedua","Gaia","Giusy Ferreri","Dolcenera","Irene Grandi","Paola Turci","Anna Oxa","Alice","Mango","Fabio Concato","Ron","Stadio","Luca Carboni","Enrico Ruggeri","Francesco Renga","Nina Zilli","Mario Biondi","Zero Assoluto","Lùnapop","Piero Pelù","Morgan","Bluvertigo","Marlene Kuntz","CCCP – Fedeli alla linea","Consorzio Suonatori Indipendenti","Ivan Graziani","Franco Califano","Gabriella Ferri","Renzo Arbore","Peppino di Capri","Fred Buscaglione","Renato Carosone","Roberto Murolo","Milva","Iva Zanicchi","Orietta Berti","Gigliola Cinquetti","Caterina Caselli","Little Tony","Bobby Solo","Equipe 84","New Trolls","Angelo Branduardi","Tiromancino","Neffa","Frankie hi-nrg mc","99 Posse","Almamegretta","Modena City Ramblers","Bandabardò","Davide Van De Sfroos","Mannarino","Gianluca Grignani","Alex Britti","Anna Tatangelo","Lorenzo Fragola","Benji & Fede","Baby K","Annalisa Scarrone","Rose Villain","Bresh","Fulminacci","Motta","Cosmo","Liberato","Iosonouncane","La Rappresentante di Lista","Ditonellapiaga","Marco Masini","Michele Zarrillo","Amedeo Minghi","Pupo","I Cugini di campagna","Dik Dik","I Camaleonti","Umberto Bindi","Gino Paoli","Sergio Endrigo","Bruno Lauzi","Enzo Jannacci","Giuni Russo","Donatella Rettore","Spagna","Sabrina Salerno","Gigi D’Agostino","Eiffel 65","Benny Benassi","Robert Miles","Lacuna Coil"].map(x=>norm(x)));
+const ITA_NO = new Set(['frank sinatra', 'michael buble', 'alessia cara', 'lp', 'miguel bose', 'xuxa', 'calogero', 'tom morello', 'the nightwatchman', 'the rat pack', 'claudio capeo', 'madrugada', 'ariana grande', 'lady gaga', 'madonna', 'bon jovi', 'dean martin', 'tony bennett', 'perry como', 'lara fabian', 'dalida', 'gwen stefani', 'pete rugolo', 'bing crosby', 'cole porter', 'hildur guðnadóttir', 'erik truffaz', 'andrew cyrille', 'vinicius de moraes'].map(x=>norm(x)));
+const itaNo = A => [A.k, ...nameParts(A.name), ...String(A.name).split(/\s*[;,&\/]\s*|\s+(?:and|with|feat\.?|e)\s+/i).map(norm)].some(k=>ITA_NO.has(k) || /^(frank|francis albert) sinatra\b|^pete rugolo\b|\bthe pete rugolo\b/.test(k));
 let _ITM = null;
 function itaData(){
   if(_ITM && _ITM.idx === IDX) return _ITM;
-  const arts = new Set(), canon = new Map(), nt = t => norm(String(t || '').replace(/\(.*?\)/g, ' '));
+  const arts = new Set(), mixed = new Set(), canon = new Map(), nt = t => norm(String(t || '').replace(/\(.*?\)/g, ' '));
   ITA_CANON.forEach(([a, t], i)=>{ const A = ARTISTS.get(norm(a)); if(!A) return; const k = nt(t), st = A.list.filter(e=>e.ty[0] === 'A' && !e.ty.includes('C') && !e.ty.includes('L'));
     const e = st.find(e=>nt(e.t) === k) || A.list.find(e=>nt(e.t) === k) || st.find(e=>nt(e.t).startsWith(k + ' ')); if(e){ arts.add(A.k); if(!canon.has(e.id)) canon.set(e.id, i); } });   // l'artista conta solo se il disco c'è davvero: niente omonimi
-  for(const A of ARTISTS.values()){ if(A.sus || VARIOUS.test(A.name)) continue; const n = A.list.filter(e=>e.it).length; if(!n) continue; const nw = A.list.filter(e=>e.w).length || A.list.length; if(n >= Math.max(1, Math.ceil(nw * 0.34))) arts.add(A.k); }
-  const rank = e => (canon.has(e.id) ? 14 : 0) + (e.br || 0) + 0.35 * Math.min(e.vc || 0, 12) - (e.ty[0] === 'A' ? 0 : 6) - (e.ty.includes('C') ? 5 : 0) - (e.ty.includes('L') ? 3 : 0);
-  const list = IDX.filter(e=>!e.sus && arts.has(norm(e.a))); list.forEach(e=>{ e._ir = rank(e); }); list.sort((a, b)=>b._ir - a._ir || a.r - b.r);
-  _ITM = { idx: IDX, arts, canon, list }; return _ITM;
+  for(const A of ARTISTS.values()){ if(A.sus || VARIOUS.test(A.name) || itaNo(A)) continue; const n = A.list.filter(e=>e.it).length; if(!n) continue; const nw = A.list.filter(e=>e.w).length || A.list.length; if(n >= Math.max(1, Math.ceil(nw * 0.34))){ arts.add(A.k); if(n < nw * 0.6) mixed.add(A.k); } }
+  // quanto è conosciuto un disco: in quante Wikipedia ha una voce, quanti lo hanno votato, se è tra i più diffusi; i classici scelti a mano salgono un po'
+  const pop = e => 2.2 * Math.log2(1 + Math.min(e.sl || 0, 12)) + 0.5 * Math.min(e.vc || 0, 12) + (e.r < 80000 ? 2 : 0) + (e.rv && e.vc >= 3 ? (e.rv - 70) / 10 : 0);
+  const rank = e => pop(e) + (canon.has(e.id) ? 5 : 0) + (ITA_BIG.has(norm(e.a)) ? 2 : 0) - (e.ty[0] === 'A' ? 0 : 3) - (e.ty.includes('C') ? 3 : 0) - (e.ty.includes('L') ? 2 : 0);
+  const cset = new Set(ITA_CANON.map(x=>norm(x[0])));
+  const list = IDX.filter(e=>{ if(e.sus) return false; const k = norm(e.a); return arts.has(k) && (e.it || canon.has(e.id) || cset.has(k) || !mixed.has(k)); });   // nomi condivisi con un omonimo straniero: solo i dischi segnati come italiani
+  list.forEach(e=>{ e._ir = rank(e); }); list.sort((a, b)=>b._ir - a._ir || a.r - b.r);
+  // gli artisti, dal più importante: i suoi cinque dischi più conosciuti, quanto è lunga la discografia, i classici
+  const cc = new Map(); list.forEach(e=>{ if(canon.has(e.id)){ const k = norm(e.a); cc.set(k, (cc.get(k) || 0) + 1); } });
+  const artists = [...arts].map(k=>ARTISTS.get(k)).filter(Boolean).map(A=>{
+    const names = new Map(); A.list.forEach(e=>names.set(e.a, (names.get(e.a) || 0) + 1)); const best = [...names.entries()].sort((a, b)=>b[1] - a[1])[0]; if(best && best[0] !== A.name) A.name = best[0];   // "MiNa" → "Mina": il nome scritto come nella maggior parte dei dischi
+    return { A, s: A.list.map(pop).sort((a, b)=>b - a).slice(0, 5).reduce((a, b)=>a + b, 0) + 3.2 * Math.log2(1 + A.list.length) + 2.5 * (cc.get(A.k) || 0) + (ITA_BIG.has(A.k) ? 10 : 0) }; }).sort((a, b)=>b.s - a.s).map(x=>x.A);
+  _ITM = { idx: IDX, arts, canon, list, artists }; return _ITM;
 }
 const isItaM = e => { try{ return itaData().arts.has(norm(e.a)); }catch(err){ return false; } };
 const tric = '<span class="tric" aria-hidden="true"></span>';
+const spread = (l, n, per) => { const c = new Map(), out = []; for(const e of l){ const k = norm(e.a), x = c.get(k) || 0; if(x >= (per || 1)) continue; c.set(k, x + 1); out.push(e); if(out.length >= n) break; } return out; };   // al massimo "per" dischi per artista: più nomi in ogni fila
 function itaStripM(){
-  try{ const l = itaData().list.filter(e=>e.ty === 'A' && !heard(e.id)); if(l.length < 8) return '';
-    return `<h2 class="sec"><span>${tric}Musica italiana</span><a class="more" href="#italia">Apri la sezione</a></h2><div class="strip">${vtDay(l.slice(0, 45), 14).map(card).join('')}</div>`;
+  try{ const l = spread(itaData().list.filter(e=>e.ty === 'A' && !heard(e.id)), 90, 1); if(l.length < 8) return '';
+    return `<h2 class="sec"><span>${tric}Musica italiana</span><a class="more" href="#italia">Apri la sezione</a></h2><div class="strip">${vtDay(l, 14).map(card).join('')}</div>`;
   }catch(err){ return ''; }
 }
 function italiaTile(){ try{ const n = itaData().list.length; return n >= 8 ? `<a class="genre" href="#italia"><b>${tric}Musica italiana</b><i>${fmtN(n)}</i></a>` : ''; }catch(err){ return ''; } }
+/* La pagina (#italia) ha quattro schede, come un'app di musica: In evidenza, Artisti, Decenni, Generi (più "Tutti i dischi").
+   Gli artisti non sono un elenco di nomi ma ritratti rotondi con la copertina del loro disco più noto, in file per gruppo. */
 function itaChaptersM(){
-  const D = itaData(), all = D.list, st = all.filter(e=>e.ty === 'A'), out = [], top = (l, n) => l.slice(0, n || 16);
-  const add = (key, name, note, list, more) => { if(list.length >= 5) out.push({ key, name, note, list, more: more || '' }); };
-  add('classici', 'I classici', 'Una selezione di dischi che hanno fatto la storia della musica italiana.', top(all.filter(e=>D.canon.has(e.id)), 24));
-  add('cantautori', 'I cantautori', '', top(st.filter(e=>e.m === 'folk' || tagHas(e, ['cantautor', 'singer-songwriter', 'canzone d']))));
-  [...new Set(st.map(decOf).filter(d=>d >= 1950))].sort((a, b)=>a - b).forEach(d=>add('d' + d, 'Anni ' + decLabel(d).replace("'", '’'), '', top(st.filter(e=>decOf(e) === d)), '#italia/' + d));
+  const D = itaData(), all = D.list, st = all.filter(e=>e.ty === 'A'), out = [];
+  const add = (tab, key, name, note, list, more) => { if(list.length >= 5) out.push({ tab, key, name, note, list, more: more || '' }); };
+  add('', 'classici', 'I classici', 'Dischi che hanno fatto la storia della musica italiana.', spread(all.filter(e=>D.canon.has(e.id)), 24, 2));
+  const voci = []; for(const A of D.artists){ if(voci.length >= 30) break; if(!itaVoce(A)) continue;
+    const e = st.find(e=>norm(e.a) === A.k && e.y >= 2005 && !['metal', 'classica', 'jazz'].includes(e.m)); if(e) voci.push(e); }
+  add('', 'oggipop', 'Le voci di oggi', 'Un disco per ciascuno.', voci);
+  add('', 'amati', 'I più conosciuti', 'I dischi italiani più noti nel mondo.', spread(st, 24, 1));
+  add('', 'cantautori', 'I cantautori', '', spread(st.filter(e=>e.m === 'folk' || tagHas(e, ['cantautor', 'singer-songwriter', 'canzone d'])), 18, 1));
+  add('', 'oggi', 'Usciti da poco', `Dal ${YEAR - 4} a oggi.`, spread(st.filter(e=>e.y >= YEAR - 4), 18, 1));
+  add('', 'tue', 'Nella tua discoteca', '', all.filter(e=>OWN.has(e.id)).slice(0, 30));
+  [...new Set(st.map(decOf).filter(d=>d >= 1950))].sort((a, b)=>b - a).forEach(d=>add('decenni', 'd' + d, 'Anni ' + decLabel(d).replace("'", '’'), '', spread(st.filter(e=>decOf(e) === d), 18, 1), '#italia/' + d));
   const prog = e => tagHas(e, ['progressive', 'prog ']);
-  add('prog', 'Il progressive italiano', 'PFM, Banco, Area, Le Orme: la stagione che il mondo ci invidia.', top(st.filter(prog)));
-  [['pop', 'Pop'], ['rock', 'Rock'], ['punk', 'Punk e new wave'], ['hiphop', 'Rap e hip hop'], ['elettronica', 'Elettronica'], ['jazz', 'Jazz'], ['metal', 'Metal'], ['classica', 'Classica e lirica']].forEach(([k, name])=>add(k, name, '', top(st.filter(e=>e.m === k && !(k === 'rock' && prog(e))))));
-  add('colonne', 'Colonne sonore', 'Da Morricone ai Goblin.', top(all.filter(e=>e.ty.includes('S'))));
-  add('oggi', 'Gli ultimi anni', `Dal ${YEAR - 4} a oggi.`, top(st.filter(e=>e.y >= YEAR - 4)));
-  add('tue', 'Nella tua discoteca', '', top(all.filter(e=>OWN.has(e.id)), 30));
+  [['pop', 'Pop'], ['rock', 'Rock'], ['hiphop', 'Rap e hip hop'], ['elettronica', 'Elettronica e dance'], ['punk', 'Punk e new wave'], ['jazz', 'Jazz'], ['metal', 'Metal'], ['classica', 'Classica e lirica']].forEach(([k, name])=>{
+    add('generi', k, name, '', spread(st.filter(e=>e.m === k && !(k === 'rock' && prog(e))), 18, 1));
+    if(k === 'rock') add('generi', 'prog', 'Il progressive italiano', 'PFM, Banco, Area, Le Orme: la stagione che il mondo ci invidia.', spread(st.filter(prog), 18, 2)); });
+  add('generi', 'colonne', 'Colonne sonore', 'Da Morricone ai Goblin.', spread(all.filter(e=>e.ty.includes('S')), 18, 3));
   return out;
 }
-function itaArtists(){ const D = itaData(), c = new Map(); D.list.forEach(e=>{ if(D.canon.has(e.id)){ const k = norm(e.a); c.set(k, (c.get(k) || 0) + 1); } });
-  return [...D.arts].map(k=>ARTISTS.get(k)).filter(A=>A && A.list.length >= 2).map(A=>({ A, s: A.fame + 0.12 * (c.get(A.k) || 0) })).sort((a, b)=>b.s - a.s).slice(0, 30).map(x=>x.A); }
+const itaArtists = n => itaData().artists.filter(A=>A.list.length >= 2).slice(0, n || 60);
+function itaEra(A){ const ys = A.list.filter(e=>e.ty === 'A').map(e=>e.y).filter(Boolean).sort((a, b)=>a - b); return !ys.length ? '' : ys[0] >= 1990 ? 'oggi' : 'sempre'; }   // dal primo album in studio
+const itaVoce = A => ITA_BIG.has(A.k) && itaEra(A) === 'oggi' && !['metal', 'classica', 'elettronica', 'jazz'].includes(itaFam(A));   // le voci di oggi: pop, rock, cantautori, rap
+function itaFam(A){ const c = new Map(); A.list.forEach(e=>{ if(e.m) c.set(e.m, (c.get(e.m) || 0) + 1); }); const b = [...c.entries()].sort((a, b)=>b[1] - a[1])[0]; return b ? b[0] : ''; }
+/* il ritratto: la copertina del disco più noto dell'artista, tonda; se non c'è, le iniziali su un colore */
+function artBest(A){ if(A._best === undefined){ const l = A.list.filter(e=>!e.sus), st = l.filter(e=>e.ty === 'A'); A._best = (st.length ? st : l).slice().sort((a, b)=>(b.tier || 0) - (a.tier || 0) || a.r - b.r)[0] || null; } return A._best; }
+function portrait(A){
+  const e = artBest(A);
+  return `<a class="pa" href="#artista/${enc(A.name)}"><span class="av" style="--tilebg:${e ? tileBg(e) : 'var(--s3)'}"><i>${esc(initials(A.name))}</i>${e ? `<img src="${coverUrl(e, 250)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span><b>${esc(A.name)}</b><small>${A.list.length} ${A.list.length === 1 ? 'disco' : 'dischi'}</small></a>`;
+}
+function itaArtistRows(){
+  const all = itaData().artists.filter(A=>A.list.length >= 2), out = [], add = (name, note, l) => { if(l.length >= 5) out.push({ name, note, l }); };
+  add('I grandi di sempre', 'Le voci e i gruppi che hanno fatto la storia.', all.filter(A=>ITA_BIG.has(A.k) && itaEra(A) === 'sempre').slice(0, 30));
+  add('Le voci di oggi', 'Dagli anni ’90 a oggi.', all.filter(itaVoce).slice(0, 30));
+  const fam = new Map(); all.forEach(A=>{ const f = itaFam(A); if(!fam.has(f)) fam.set(f, []); fam.get(f).push(A); });
+  [['folk', 'Cantautori e folk'], ['pop', 'Pop'], ['rock', 'Rock'], ['hiphop', 'Rap e hip hop'], ['elettronica', 'Elettronica e dance'], ['punk', 'Punk e new wave'], ['jazz', 'Jazz'], ['metal', 'Metal'], ['classica', 'Classica, lirica e colonne sonore']].forEach(([k, name])=>add(name, '', (fam.get(k) || []).slice(0, 24)));
+  return out;
+}
+const itaSec = (title, note, more, body, id) => `<section${id ? ` id="${id}"` : ''}><h2 class="sec"><span>${esc(title)}${note ? `<span class="cnt" style="font-weight:500; font-size:13.5px">${esc(note)}</span>` : ''}</span>${more || ''}</h2>${body}</section>`;
 function viewItalia(arg){
   setNav(''); const D = itaData(), all = D.list;
   if(all.length < 8){ V().innerHTML = `<h1 class="pg">${tric}Musica italiana</h1><p class="lead">Questa sezione arriva con il prossimo aggiornamento dell'indice dei dischi.</p>`; return; }
-  const d = parseInt(arg, 10);
-  if(d || arg === 'tutti'){ viewList('italiani'); if(d && $('fD')){ $('fD').value = String(d); if($('fD').value === String(d)) $('fD').onchange({ target: $('fD') }); } return; }
-  const C = itaChaptersM(), M = itaArtists(), hd = all.filter(e=>heard(e.id)).length;
-  V().innerHTML = `<h1 class="pg">${tric}Musica italiana</h1><p class="lead">${fmtN(all.length)} dischi di casa nostra, capitolo per capitolo: i classici, i cantautori, i decenni, i generi, gli artisti.${hd ? ` Ne hai ascoltati ${hd}.` : ''}</p>`
-    + `<div class="acts" id="itjump" style="margin:12px 0 6px">${C.map((x, i)=>`<button class="btn" type="button" data-it="${i}">${esc(x.name)}</button>`).join('')}${M.length ? '<button class="btn" type="button" data-it="m">Gli artisti</button>' : ''}<a class="btn amber" href="#italia/tutti">Tutti (${fmtN(all.length)})</a></div>`
-    + C.map((x, i)=>{ const h = x.list.filter(e=>heard(e.id)).length;
-        return `<section id="it${i}"><h2 class="sec"><span>${esc(x.name)}<span class="cnt" style="font-weight:500; font-size:13.5px">${esc(x.note)}${h ? `${x.note ? ' · ' : ''}ascoltati ${h} su ${x.list.length}` : ''}</span></span>${x.more ? `<a class="more" href="${x.more}">Tutto il decennio</a>` : ''}</h2><div class="strip">${x.list.map(card).join('')}</div></section>`
-          + (x.key === 'classici' && M.length ? `<section id="itm"><h2 class="sec"><span>Gli artisti<span class="cnt" style="font-weight:500; font-size:13.5px">Tocca un nome per la biografia, la discografia e "Da dove comincio?".</span></span></h2><div class="people">${M.map(personCard).join('')}</div></section>` : ''); }).join('')
-    + (C.length && C[0].key !== 'classici' && M.length ? `<section id="itm"><h2 class="sec">Gli artisti</h2><div class="people">${M.map(personCard).join('')}</div></section>` : '');
-  $('itjump').addEventListener('click', ev=>{ const b = ev.target.closest('[data-it]'); const el = b && document.getElementById('it' + b.dataset.it); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  const d = parseInt(arg, 10), nA = D.artists.length, TABS = [['', 'In evidenza'], ['artisti', 'Artisti'], ['decenni', 'Decenni'], ['generi', 'Generi'], ['tutti', 'Tutti i dischi']], tab = d ? 'tutti' : TABS.some(t=>t[0] === arg) ? arg : '';
+  const head = `<h1 class="pg">${tric}Musica italiana</h1><p class="lead">${fmtN(all.length)} dischi di ${fmtN(nA)} artisti di casa nostra.</p><div class="tabs" id="ittabs">${TABS.map(([k, n])=>`<a href="#italia${k ? '/' + k : ''}" class="${k === tab ? 'on' : ''}">${n}</a>`).join('')}</div>`;
+  if(tab === 'tutti'){ viewList('italiani'); const h1 = V().querySelector('h1.pg'); if(h1) h1.outerHTML = head; if(d && $('fD')){ $('fD').value = String(d); if($('fD').value === String(d)) $('fD').onchange({ target: $('fD') }); } return; }
+  if(tab === 'artisti'){
+    const rows = itaArtistRows(), list = D.artists; let n = 60;
+    V().innerHTML = head + `<input id="af" type="search" placeholder="Cerca un artista italiano…" aria-label="Cerca un artista italiano" style="width:100%; max-width:420px; margin:2px 0 4px">`
+      + `<div id="itrows">${rows.map(r=>itaSec(r.name, r.note, '', `<div class="strip round">${r.l.map(portrait).join('')}</div>`)).join('')}<h2 class="sec"><span>Tutti gli artisti<span class="cnt">${fmtN(list.length)}</span></span></h2></div>`
+      + `<div class="pgrid" id="al"></div><p style="margin-top:18px"><button class="btn" id="am">Mostra altri</button></p>`;
+    const draw = () => { const f = norm($('af').value), l = f ? list.filter(A=>A.k.includes(f)) : list; $('itrows').classList.toggle('hidden', !!f);
+      $('al').innerHTML = l.slice(0, n).map(portrait).join('') || '<p class="note">Nessun artista con questo nome.</p>'; $('am').classList.toggle('hidden', l.length <= n); };
+    $('af').oninput = () => { n = 60; draw(); }; $('am').onclick = () => { n += 60; draw(); }; draw(); return;
+  }
+  const C = itaChaptersM().filter(x=>x.tab === tab), top = itaArtists(24);
+  const row = x => { const h = x.list.filter(e=>heard(e.id)).length; return itaSec(x.name, x.note + (h ? `${x.note ? ' · ' : ''}ascoltati ${h} su ${x.list.length}` : ''), x.more ? `<a class="more" href="${x.more}">Tutto il decennio</a>` : '', `<div class="strip">${x.list.map(card).join('')}</div>`); };
+  V().innerHTML = head + C.map((x, i)=>row(x) + (tab === '' && i === 0 && top.length >= 5 ? itaSec('Artisti in primo piano', '', `<a class="more" href="#italia/artisti">Tutti gli artisti</a>`, `<div class="strip round">${top.map(portrait).join('')}</div>`, 'itm') : '')).join('');
 }
 
 /* ---------- 🎶 La vetrina: tre dischi al giorno in cima a Esplora (un capolavoro, un gran disco, una gemma) ----------
@@ -750,6 +805,7 @@ function viewHome(){
     + monthStrip()
     + itaStripM()
     + (RATED ? strip('✦ Capolavori', masterpieces(), '#lista/capolavori') : '')
+    + artStrip()
     + perTeStrip()
     + strip('📰 Acclamati dalla critica', ACCLAIM, '#lista/acclamati')
     + annivStrip()
@@ -794,7 +850,7 @@ const personCard = A => `<a class="person" href="#artista/${enc(A.name)}"><span 
 function viewSearch(q){
   setNav(''); if($('q') !== document.activeElement) $('q').value = q;
   const { arts, albs } = search(q);
-  V().innerHTML = `<h1 class="pg">“${esc(q)}”</h1>` + (arts.length ? `<h2 class="sec">Artisti</h2><div class="people">${arts.map(personCard).join('')}</div>` : '')
+  V().innerHTML = `<h1 class="pg">“${esc(q)}”</h1>` + (arts.length ? `<h2 class="sec">Artisti</h2><div class="strip round">${arts.map(portrait).join('')}</div>` : '')
     + (albs.length ? `<h2 class="sec">Dischi</h2><div class="rows">${albs.map(row).join('')}</div>` : '')
     + (!arts.length && !albs.length ? '<p class="lead">Nessun risultato. L\'atlante contiene gli 80.000 dischi più conosciuti: prova con un altro titolo o con il nome dell\'artista.</p>' : '');
 }
@@ -932,7 +988,7 @@ function viewFamily(k){
   const acc = HAS_CL ? list.filter(e=>e.cl >= 2 && (!HAS_W || e.w)).sort((a, b)=>b.cl - a.cl || a.r - b.r) : [];
   let n = 48;
   V().innerHTML = `<p class="note"><a class="lnk" href="#generi">← Tutti i generi</a></p><h1 class="pg">${esc(F[1])}</h1><p class="lead">${fmtN(list.length)} dischi nell'atlante.</p>`
-    + (refs.length ? `<h2 class="sec">Artisti di riferimento<a class="more" href="#artisti/${k}">Tutti</a></h2><div class="people">${refs.map(personCard).join('')}</div>` : '')
+    + (refs.length ? `<h2 class="sec">Artisti di riferimento<a class="more" href="#artisti/${k}">Tutti</a></h2><div class="strip round">${refs.map(portrait).join('')}</div>` : '')
     + strip('✦ Capolavori del genere', capo, '', '') + strip('📰 Acclamati dalla critica', acc, '', '')
     + `<h2 class="sec">Sottogeneri</h2><div class="chips">${topGenres(list, 28).map(g=>`<a class="chip" href="#genere/${enc(g)}">${esc(cap(g))}</a>`).join('')}</div>`
     + `<h2 class="sec">I più famosi</h2><div class="grid" id="lst"></div><p style="margin-top:18px"><button class="btn" id="moreBtn">Mostra altri</button></p>`;
@@ -1034,7 +1090,7 @@ function viewArtist(name){
     <p class="lbl">Ascolta su</p>${listen(A.name)}
     <div id="artOn"><p class="note">Carico biografia, formazione e crediti…</p></div><div id="artTeam"></div>
     ${startHere(A)}
-    ${sim.length ? `<h2 class="sec">Artisti simili</h2><div class="people">${sim.map(personCard).join('')}</div>` : ''}
+    ${sim.length ? `<h2 class="sec">Artisti simili</h2><div class="strip round">${sim.map(portrait).join('')}</div>` : ''}
     ${L.length > 6 ? strip('I più famosi', L, '', '') : ''}
     ${sec('Album in studio', L.filter(e=>e.ty === 'A'))}${sec('EP', L.filter(e=>e.ty[0] === 'E'))}${sec('Dal vivo', L.filter(e=>e.ty.includes('L')))}${sec('Raccolte', L.filter(e=>e.ty.includes('C')))}${sec('Colonne sonore', L.filter(e=>e.ty.includes('S')))}${sec('Altro', L.filter(e=>e.ty[0] === 'A' && /R/.test(e.ty) && !/[LCS]/.test(e.ty)))}`;
   const here = () => decodeURIComponent(location.hash.replace(/^#/, '')) === 'artista/' + A.name || location.hash.replace(/^#/, '') === 'artista/' + enc(A.name);
@@ -1073,14 +1129,47 @@ function renderArtistOnline(A, d){
   $('artOn').innerHTML = P.join('');
   if(d.wiki && d.wiki.lang === 'en' && $('bTr')) fillTr('bTr', d.wiki.text);   // la biografia, tradotta in italiano
 }
-function viewArtists(fam){
-  setNav('artisti'); const F = fam && MACRO.find(x=>x[0] === fam);
-  const all = F ? (FAM_ART[fam] || []) : [...ARTISTS.values()].filter(A=>A.list.length >= 2 && !VARIOUS.test(A.name)).sort((a, b)=>b.fame - a.fame);
-  let n = 90;
-  V().innerHTML = `<h1 class="pg">Artisti${F ? ': ' + esc(F[1]) : ''}</h1><div class="tabs"><a href="#artisti" class="${F ? '' : 'on'}">Tutti</a>${MACRO.filter(([k])=>(FAM_ART[k] || []).length).map(([k, name])=>`<a href="#artisti/${k}" class="${fam === k ? 'on' : ''}">${esc(name)}</a>`).join('')}</div>`
-    + `<p class="lead">${F ? 'Gli artisti di riferimento del genere, dal più importante.' : 'Dal più famoso, in base alla fama dei loro dischi.'}</p><input id="af" type="search" placeholder="Filtra per nome…" style="width:100%; max-width:420px; margin-bottom:14px"><div class="people" id="al"></div><p style="margin-top:18px"><button class="btn" id="am">Mostra altri</button></p>`;
-  const draw = () => { const f = norm($('af').value), l = f ? all.filter(A=>A.k.includes(f)) : all; $('al').innerHTML = l.slice(0, n).map(personCard).join(''); $('am').classList.toggle('hidden', l.length <= n); };
-  $('af').oninput = () => { n = 90; draw(); }; $('am').onclick = () => { n += 90; draw(); }; draw();
+/* ---------- Artisti: una pagina a schede, con i ritratti rotondi in file per gruppo (come la Musica italiana) ---------- */
+let _ARTV = null;
+function artData(){
+  if(_ARTV && _ARTV.idx === IDX) return _ARTV;
+  const all = [...ARTISTS.values()].filter(A=>!A.sus && !VARIOUS.test(A.name) && A.list.length >= 2 && (!HAS_W || A.hasW)).sort((a, b)=>b.fame - a.fame);
+  all.forEach((A, i)=>{ A._pos = i; const ys = A.list.filter(e=>e.ty === 'A').map(e=>e.y).filter(Boolean); A._deb = ys.length ? Math.min(...ys) : 0; A._cap = A.list.filter(e=>e.tier >= 2).length; A._gem = A.list.filter(e=>e.gem).length; });
+  _ARTV = { idx: IDX, all }; return _ARTV;
+}
+function artRows(tab){
+  const all = artData().all, out = [], add = (name, note, l, more) => { if(l.length >= 5) out.push({ name, note, l, more: more || '' }); };
+  if(tab === 'generi'){ MACRO.forEach(([k, name])=>add(name, '', (FAM_ART[k] || []).slice(0, 24), `#artisti/${k}`)); return out; }
+  if(tab === 'epoche'){ const decs = [...new Set(all.map(A=>Math.floor(A._deb / 10) * 10).filter(d=>d >= 1960))].sort((a, b)=>b - a);
+    decs.forEach(d=>add('Esordio negli anni ' + decLabel(d).replace("'", '’'), '', all.filter(A=>A._deb >= d && A._deb < d + 10).slice(0, 24)));
+    add('I pionieri', 'Prima del 1960.', all.filter(A=>A._deb && A._deb < 1960).slice(0, 24)); return out; }
+  add('I più grandi', 'Dalla fama dei loro dischi.', all.slice(0, 30));
+  add('I maestri dei capolavori', 'Chi ha firmato più capolavori.', all.filter(A=>A._cap >= 2).sort((a, b)=>b._cap - a._cap || a._pos - b._pos).slice(0, 24));
+  const cnt = f => { const m = new Map(); IDX.forEach(e=>{ if(f(e)){ const k = norm(e.a); m.set(k, (m.get(k) || 0) + 1); } }); return [...m.entries()].sort((a, b)=>b[1] - a[1]).map(x=>ARTISTS.get(x[0])).filter(A=>A && !VARIOUS.test(A.name)); };
+  add('Nella tua discoteca', 'Gli artisti di cui hai più dischi.', cnt(e=>OWN.has(e.id)).slice(0, 24));
+  add('I tuoi più ascoltati', '', cnt(e=>heard(e.id)).slice(0, 24));
+  add('Le voci di oggi', 'Esordio dal 2010.', all.filter(A=>A._deb >= 2010).slice(0, 24));
+  add('Da riscoprire', 'Meno famosi, ma con gemme nascoste.', all.filter(A=>A._gem >= 1 && A._pos >= 300).sort((a, b)=>b._gem - a._gem || a._pos - b._pos).slice(0, 24));
+  try{ add('Musica italiana', '', itaArtists(24), '#italia/artisti'); }catch(err){}
+  return out;
+}
+function viewArtists(arg){
+  setNav('artisti'); const D = artData(), F = arg && MACRO.find(x=>x[0] === arg), TABS = [['', 'In evidenza'], ['generi', 'Generi'], ['epoche', 'Epoche'], ['tutti', 'Tutti']], tab = F ? 'generi' : TABS.some(t=>t[0] === arg) ? arg : '';
+  const list = F ? (FAM_ART[arg] || []) : D.all, grid = !!F || tab === 'tutti'; let n = 60;
+  V().innerHTML = `<h1 class="pg">Artisti</h1><p class="lead">${fmtN(D.all.length)} artisti e gruppi: tocca un ritratto per la biografia, la discografia e "Da dove comincio?".</p>`
+    + `<div class="tabs" id="ittabs">${TABS.map(([k, name])=>`<a href="#artisti${k ? '/' + k : ''}" class="${k === tab ? 'on' : ''}">${name}</a>`).join('')}</div>`
+    + `<input id="af" type="search" placeholder="Cerca un artista o un gruppo…" aria-label="Cerca un artista" style="width:100%; max-width:420px; margin:2px 0 4px">`
+    + (F ? `<div class="tabs" id="famtabs" style="margin-top:12px">${MACRO.filter(([k])=>(FAM_ART[k] || []).length).map(([k, name])=>`<a href="#artisti/${k}" class="${arg === k ? 'on' : ''}">${esc(name)}</a>`).join('')}</div>` : '')
+    + `<div id="itrows">${grid ? `<h2 class="sec"><span>${F ? esc(F[1]) : 'Tutti gli artisti'}<span class="cnt">${fmtN(list.length)}</span></span></h2>` : artRows(tab).map(r=>itaSec(r.name, r.note, r.more ? `<a class="more" href="${r.more}">Tutti</a>` : '', `<div class="strip round">${r.l.map(portrait).join('')}</div>`)).join('')}</div>`
+    + `<div class="pgrid" id="al"></div><p style="margin-top:18px"><button class="btn hidden" id="am">Mostra altri</button></p>`;
+  const draw = () => { const f = norm($('af').value), l = f ? D.all.filter(A=>A.k.includes(f)) : grid ? list : []; $('itrows').classList.toggle('hidden', !!f);
+    $('al').innerHTML = l.slice(0, n).map(portrait).join('') || (f ? '<p class="note">Nessun artista con questo nome.</p>' : ''); $('am').classList.toggle('hidden', l.length <= n); };
+  $('af').oninput = () => { n = 60; draw(); }; $('am').onclick = () => { n += 60; draw(); }; draw();
+}
+function artStrip(){   // in home: sedici ritratti al giorno tra i cento artisti più grandi
+  try{ const l = artData().all.slice(0, 100); if(l.length < 12) return ''; const pick = vtDay(l.map(A=>({ id: A.k, A })), 16).map(x=>x.A).sort((a, b)=>a._pos - b._pos);
+    return `<h2 class="sec"><span>Artisti in primo piano</span><a class="more" href="#artisti">Tutti gli artisti</a></h2><div class="strip round">${pick.map(portrait).join('')}</div>`;
+  }catch(err){ return ''; }
 }
 
 /* ---------- le mie liste ---------- */
