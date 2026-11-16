@@ -126,17 +126,80 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 .st-card{display:grid; grid-template-columns:118px minmax(0,1fr); gap:14px; background:var(--s1); border:1px solid var(--line); border-radius:14px; padding:12px; align-items:start;}
 .st-card .cv{width:118px;} .st-info{display:flex; flex-direction:column; gap:6px; min-width:0;} .st-info b{font-size:18px; font-weight:750; letter-spacing:-.015em;} .st-tier{color:var(--amber2); font-weight:700; font-size:14px;}
 .trx .plot{white-space:pre-line;}
+
+/* ---------- 1.8 · Testata di vetro, vetrina del giorno, file con le frecce (come negli Atlanti di cinema e serie) ---------- */
+.top{z-index:30; background:none; -webkit-backdrop-filter:none; backdrop-filter:none; border-bottom:0; padding:env(safe-area-inset-top,0px) 0 0;}
+.top::before{content:""; position:absolute; inset:0; z-index:-1; background:rgba(16,20,23,.78); -webkit-backdrop-filter:saturate(1.6) blur(22px); backdrop-filter:saturate(1.6) blur(22px); border-bottom:1px solid rgba(255,255,255,.07);}   /* il vetro su un livello a parte: così la barra in basso del telefono resta fissa */
+.top-in{max-width:1280px; margin:0 auto; padding:10px max(16px,4vw); display:flex; align-items:center; gap:10px 18px; flex-wrap:wrap;}
+.brand{white-space:nowrap;}
+#q{flex:1 1 200px; width:auto; min-width:0; height:40px; margin:0; padding:0 14px 0 40px; border-color:transparent; font-size:15px; background:rgba(255,255,255,.07) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B8B3A8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m16 16 4.5 4.5'/%3E%3C/svg%3E") 13px center/17px no-repeat; transition:background-color .2s, border-color .2s;}
+#q::placeholder{color:var(--paper3);} #q:focus{border-color:var(--acc2); background-color:rgba(255,255,255,.11);}
+.nav{margin:0; gap:4px; overflow:visible; flex-wrap:wrap;} .nav a{padding:7px 12px; font-size:14.5px; transition:background .15s, color .15s;} .nav a svg{display:none;}
+.nav a:hover{color:var(--paper); background:rgba(255,255,255,.07);} .nav a.on{background:var(--paper); color:var(--ink);}
+.m-only{display:none !important;}
+@media (max-width:760px){   /* telefono: in alto nome e ricerca, le sezioni in una barra in basso */
+  .top-in{padding:8px 14px; gap:10px; flex-wrap:nowrap;} .brand b{font-size:17px;} .brand img{width:26px; height:26px;}
+  #q{flex:1 1 100px; height:38px; font-size:16px;} .top-in:focus-within .brand b{display:none;}
+  .nav{position:fixed; left:0; right:0; bottom:0; z-index:40; flex-wrap:nowrap; gap:0; padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px)); background:rgba(16,20,23,.93); -webkit-backdrop-filter:saturate(1.7) blur(22px); backdrop-filter:saturate(1.7) blur(22px); border-top:1px solid rgba(255,255,255,.08);}
+  .nav a{flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:5px 2px 3px; font-size:10.5px; font-weight:600; border-radius:10px; letter-spacing:0;}
+  .nav a svg{display:block; width:22px; height:22px;} .nav a.on{background:none; color:var(--amber2);} .nav a:hover{background:none;}
+  .nav a[data-k="artisti"]{display:none;}   /* gli artisti: dal pulsante sotto la vetrina */
+  main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} #toast{bottom:calc(84px + env(safe-area-inset-bottom,0px));}
+  .m-only{display:inline-flex !important;}
+  h2.sec{font-size:19px; flex-wrap:wrap; gap:2px 10px; margin-top:24px;}
+}
+/* la vetrina: tre dischi sovrapposti, uno alla volta */
+.vt{position:relative; display:grid; overflow:hidden; border-radius:20px; margin:4px 0 6px; background:var(--s1); border:1px solid rgba(255,255,255,.08);}
+.vt-s{grid-area:1 / 1; position:relative; isolation:isolate; overflow:hidden; display:grid; align-items:center; background:var(--tilebg, var(--s2)); opacity:0; visibility:hidden; transition:opacity .7s ease, visibility 0s linear .7s;}
+.vt-s.on{opacity:1; visibility:visible; z-index:1; transition:opacity .7s ease;}
+.vt-bg{position:absolute; inset:-14%; z-index:-2; background:center/cover no-repeat; filter:blur(44px) saturate(1.5) brightness(.62);}
+.vt-s::after{content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; background:linear-gradient(90deg, rgba(10,14,16,.9) 0%, rgba(10,14,16,.58) 55%, rgba(10,14,16,.2) 100%), linear-gradient(0deg, rgba(10,14,16,.5), transparent 45%);}
+.vt-in{position:relative; z-index:1; display:grid; grid-template-columns:minmax(0, 1fr) 250px; grid-template-areas:"txt p" "act p"; gap:0 36px; align-items:center; padding:34px 38px 46px;}
+.vt-txt{grid-area:txt; min-width:0; align-self:end;} .vt-act{grid-area:act; align-self:start; display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;} .vt-p{grid-area:p;}
+.vt-eye{margin:0 0 10px; font-size:12.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--amber2);}
+.vt-t{margin:0; font-weight:800; letter-spacing:-.035em; line-height:1.03; font-size:clamp(28px, 4.4vw, 50px); text-wrap:balance;} .vt-t a:hover{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:5px;}
+.vt-by{margin:8px 0 0; font-size:19px; font-weight:650;} .vt-by a:hover{text-decoration:underline;}
+.vt-meta{margin:6px 0 0; color:rgba(236,231,220,.84); font-size:15px;}
+.vt-sc{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px;} .vt-sc .bd{background:rgba(255,255,255,.11); font-size:12.5px; padding:4px 10px;} .vt-sc .bd.mp{background:rgba(233,162,59,.24);} .vt-sc .bd.own{background:rgba(79,209,165,.2);}
+.vt-sum{margin:14px 0 0; max-width:62ch; font-size:15.5px; line-height:1.55; color:rgba(236,231,220,.92); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;} .vt-sum:empty{display:none;}
+.vt-act .btn{height:42px; padding:0 18px; border-radius:21px; background:rgba(255,255,255,.11); border-color:rgba(255,255,255,.15);} .vt-act .btn:hover{background:rgba(255,255,255,.2);}
+.vt-act .btn.go{background:var(--paper); border-color:var(--paper); color:var(--ink); font-weight:700;} .vt-act .btn.go:hover{background:#fff;}
+.vt-p .cv{border-radius:12px; box-shadow:0 22px 50px rgba(0,0,0,.55);}
+.vt-dots{position:absolute; left:38px; bottom:18px; z-index:3; display:flex; gap:7px;}
+.vt-dot{position:relative; width:8px; height:8px; padding:0; border:0; border-radius:4px; background:rgba(255,255,255,.36); cursor:pointer; transition:width .3s ease, background .3s ease;}
+.vt-dot::after{content:""; position:absolute; inset:-11px -4px;} .vt-dot.on{width:28px; background:var(--paper);} .vt-dot:hover{background:rgba(255,255,255,.7);}
+.vt-snow{position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
+.vt-snow i{position:absolute; top:-10px; border-radius:50%; background:#fff; opacity:0; animation:fiocco 12s linear infinite; will-change:transform;}
+@keyframes fiocco{ 0%{transform:translate3d(0, 0, 0); opacity:0;} 6%{opacity:var(--o, .6);} 92%{opacity:var(--o, .6);} 100%{transform:translate3d(var(--dx, 20px), 640px, 0); opacity:0;} }
+@media (prefers-reduced-motion: reduce){ .vt-snow i{animation:none !important;} }
+@media (max-width:760px){
+  .vt{border-radius:16px;} .vt-s{align-items:start;} .vt-dots{left:16px; bottom:14px;}
+  .vt-in{grid-template-columns:minmax(0, 1fr) 112px; grid-template-areas:"txt p" "act act"; gap:0 14px; padding:18px 16px 40px; align-items:start;}
+  .vt-txt{align-self:start;} .vt-eye{font-size:11px; margin-bottom:7px;} .vt-by{font-size:16px; margin-top:6px;} .vt-meta{font-size:13.5px;} .vt-sc{margin-top:10px; gap:6px;} .vt-sum{font-size:14px; margin-top:10px;}
+  .vt-act{margin-top:14px;} .vt-act .btn{height:38px; padding:0 14px; font-size:13.5px;} .vt-p .cv .ph span{font-size:12px;}
+}
+.quick{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 2px;} .quick .btn{flex:none;}
+@media (max-width:760px){ .quick{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:12px calc(-1 * max(16px,4vw)) 0; padding:2px max(16px,4vw);} .quick::-webkit-scrollbar{display:none;} }
+/* le file di copertine */
+.strip{scrollbar-width:none; padding:8px 2px 10px; margin:0 -2px;} .strip::-webkit-scrollbar{display:none;}
+.card .cv{transition:transform .18s ease, box-shadow .18s ease;}
+@media (hover:hover){ .card:hover .cv{transform:translateY(-3px) scale(1.025); box-shadow:0 14px 30px rgba(0,0,0,.5);} }
+.sw{position:relative;}
+.sw:not(.at-end) > .strip{-webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 56px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 56px), transparent);}
+.sw-b{position:absolute; top:calc(50% - 26px); transform:translateY(-50%); z-index:3; width:42px; height:42px; padding:0 0 4px; border-radius:50%; border:1px solid rgba(255,255,255,.18); background:rgba(20,27,30,.8); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:var(--paper); font-size:27px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .18s, background .18s, color .18s;}
+.sw-b.prev{left:-14px;} .sw-b.next{right:-14px;} .sw:hover .sw-b{opacity:1;} .sw-b:hover{background:var(--paper); color:var(--ink);}
+.sw.at-start .sw-b.prev, .sw.at-end .sw-b.next{display:none;}
+@media (hover:none){ .sw-b{display:none;} }
 </style>
 </head>
 <body>
-<header class="top">
+<header class="top"><div class="top-in">
   <a class="brand" href="#"><img src="icons/icon-192.png" alt=""><b>Atlante della Musica</b></a>
-  <input id="q" type="search" placeholder="Cerca un album o un artista…" autocomplete="off" enterkeyhint="search">
-  <nav class="nav" id="nav">
-    <a href="#" data-k="">Esplora</a><a href="#lista/capolavori" data-k="capolavori">Capolavori</a><a href="#artisti" data-k="artisti">Artisti</a>
-    <a href="#liste" data-k="liste">Le mie liste</a><a href="#classifiche" data-k="classifiche">Classifiche</a><a href="#strumenti" data-k="strumenti">Strumenti</a>
+  <input id="q" type="search" placeholder="Cerca un album o un artista…" aria-label="Cerca" autocomplete="off" enterkeyhint="search">
+  <nav class="nav" id="nav" aria-label="Sezioni">
+    <a href="#" data-k=""><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><circle cx='12' cy='12' r='9'/><path d='m15.5 8.5-2 5-5 2 2-5z'/></svg><span>Esplora</span></a><a href="#lista/capolavori" data-k="capolavori"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.800 1-5.800-4.300-4.100 5.900-.900z'/></svg><span>Capolavori</span></a><a href="#artisti" data-k="artisti"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><circle cx='12' cy='8' r='3.6'/><path d='M4.5 20c.8-4 3.8-6 7.5-6s6.700 2 7.500 6'/></svg><span>Artisti</span></a><a href="#liste" data-k="liste"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z'/></svg><span>Le mie liste</span></a><a href="#classifiche" data-k="classifiche"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M5 20v-7M12 20V5M19 20v-10'/></svg><span>Classifiche</span></a><a href="#strumenti" data-k="strumenti"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 7h10M18 7h2M4 17h2M10 17h10'/><circle cx='16' cy='7' r='2'/><circle cx='8' cy='17' r='2'/></svg><span>Strumenti</span></a>
   </nav>
-</header>
+</div></header>
 <main id="view"><p class="note">Apro l'atlante…</p></main>
 <div id="toast"></div>
 <script>
@@ -144,7 +207,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -531,24 +594,107 @@ function startHere(A){
   }catch(err){ return ''; }
 }
 
+/* ---------- 🎶 La vetrina: tre dischi al giorno in cima a Esplora (un capolavoro, un gran disco, una gemma) ----------
+   Un blocco isolato: se qualcosa non va non mostra nulla e restano i pulsanti di sempre. Cambia ogni giorno, scorre da sola. */
+function vtDay(l, n){ const day = Math.floor(Date.now() / 864e5), mix = x => { x ^= x >>> 16; x = Math.imul(x, 0x45d9f3b); x ^= x >>> 16; x = Math.imul(x, 0x45d9f3b); return (x ^ (x >>> 16)) >>> 0; };
+  const h = id => { let x = mix(day + 0x9e3779b9); for(let i = 0; i < id.length; i++) x = mix(x ^ id.charCodeAt(i)); return x; };
+  return l.map(e=>[h(e.id), e]).sort((a, b)=>a[0] - b[0]).slice(0, n).map(x=>x[1]); }
+function vtPick(){
+  const ok = e => !e.sus && e.ty === 'A' && !heard(e.id) && !VARIOUS.test(e.a) && !e.fresh, out = [], art = new Set();
+  const take = l => { const e = vtDay(l.filter(e=>ok(e) && !art.has(norm(e.a))), 1)[0]; if(e){ out.push(e); art.add(norm(e.a)); } };
+  take(IDX.filter(e=>e.tier >= 2)); take(IDX.filter(e=>e.tier === 1)); take(GEMS);
+  while(out.length < 3){ const n = out.length; take(IDX.filter(e=>(e.tier || e.gem) && !out.includes(e))); if(out.length === n) break; }
+  return out;
+}
+const vtXmas = () => { try{ const q = new URLSearchParams(location.search).get('periodo'); if(q) return q === 'natale'; const d = new Date(), k = (d.getMonth() + 1) * 100 + d.getDate(); return k >= 1201 || k <= 106; }catch(err){ return false; } };
+function vtSnow(){   // ❄ a Natale, qualche fiocco che scende dentro la vetrina, dietro al titolo
+  try{ if(!vtXmas()) return ''; let h = '';
+    for(let i = 0; i < 18; i++){ const r = k => { const x = Math.sin((i + 1) * 12.9898 * k) * 43758.5453; return x - Math.floor(x); }, sz = 2 + Math.round(r(1) * 3);
+      h += `<i style="left:${(r(2) * 100).toFixed(1)}%; width:${sz}px; height:${sz}px; --o:${(0.35 + r(3) * 0.5).toFixed(2)}; --dx:${Math.round(r(4) * 70 - 35)}px; animation-duration:${(9 + r(5) * 10).toFixed(1)}s; animation-delay:-${(r(6) * 18).toFixed(1)}s"></i>`; }
+    return `<div class="vt-snow" aria-hidden="true">${h}</div>`;
+  }catch(err){ return ''; }
+}
+function vtSlide(e, on){
+  const meta = [e.y || '', typeLabel(e), e.g.slice(0, 3).map(g=>esc(cap(g))).join(' · ')].filter(Boolean).join('  ·  ');
+  const sc = [tierBadge(e) || (e.gem ? '<span class="bd mp">💎 Gemma nascosta</span>' : ''), e.sl >= 2 ? `<span class="bd">🌍 Voce in ${e.sl} Wikipedia</span>` : '', e.aw ? `<span class="bd">🏆 ${e.aw} ${e.aw === 1 ? 'premio' : 'premi'}</span>` : '', OWN.has(e.id) ? '<span class="bd own">✓ Nella tua discoteca</span>' : ''].join('');
+  return `<div class="vt-s${on ? ' on' : ''}" data-id="${e.id}" style="--tilebg:${tileBg(e)}"${on ? '' : ' inert aria-hidden="true"'}><div class="vt-bg" style="background-image:url('${coverUrl(e, 250)}')"></div>${vtSnow()}<div class="vt-in">`
+    + `<div class="vt-txt"><p class="vt-eye">Oggi in evidenza · ${esc(e.tier >= 2 ? 'un capolavoro' : e.tier === 1 ? 'un gran disco' : 'una gemma nascosta')}</p><h1 class="vt-t"><a href="#album/${e.id}">${esc(e.t)}</a></h1>`
+    + `<p class="vt-by"><a href="#artista/${enc(e.a)}">${esc(e.a)}</a></p><p class="vt-meta">${meta}</p><div class="vt-sc">${sc}</div><p class="vt-sum" data-id="${e.id}"></p></div>`
+    + `<div class="vt-act"><a class="btn go" href="#album/${e.id}">Apri il disco</a></div>`
+    + `<a class="vt-p" href="#album/${e.id}" aria-label="${esc(e.t)}">${cover(e, 500)}</a></div></div>`;
+}
+function vtHTML(){
+  try{ const l = vtPick(); if(!l.length) return '';
+    return `<section class="vt" data-i="0" aria-label="In evidenza">${l.map((e, i)=>vtSlide(e, !i)).join('')}`
+      + (l.length > 1 ? `<div class="vt-dots">${l.map((e, i)=>`<button type="button" class="vt-dot${i ? '' : ' on'}" data-i="${i}" aria-label="${esc(e.t)}"></button>`).join('')}</div>` : '') + `</section>`;
+  }catch(err){ return ''; }
+}
+const quickHTML = () => `<div class="quick"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#adesso">🎧 Cosa ascolto adesso?</a><a class="btn" href="#perte">✨ Per te</a><a class="btn m-only" href="#artisti">🎤 Artisti</a></div>`;
+async function vtStory(id){   // due frasi sul disco da Wikipedia, con tre richieste leggere (non l'intera scheda)
+  const key = 'vt1:' + id, c = await dget(key); if(c && Date.now() - c.at < 30 * 864e5) return c.w;
+  const full = await dget('alb2:' + id); if(full && full.wiki) return full.wiki;
+  if(navigator.onLine === false) return null;
+  let w = null; const qid = await wdByMB('P436', uuid(id));
+  if(qid){ const ent = (await wdEntities([qid], 'sitelinks'))[qid] || {}; w = await wikiSummary(ent.sitelinks); if(w) w = { text: w.text, lang: w.lang }; }
+  await dset(key, { at: Date.now(), w }); return w;
+}
+function vtFill(slide){
+  try{ const el = slide && slide.querySelector('.vt-sum'); if(!el || el.dataset.done) return; el.dataset.done = '1'; const id = el.dataset.id;
+    const put = t => { if(t && el.isConnected) el.textContent = t; };
+    Promise.resolve().then(()=>vtStory(id)).then(w=>{ if(!w || !w.text) return;
+      const short = (String(w.text).match(/[^.!?]+[.!?]+(?=\s|$)/g) || [String(w.text)]).slice(0, 3).join('').trim().slice(0, 460);
+      return w.lang === 'en' ? translateIt(short).then(put) : put(short); }).catch(()=>{});
+  }catch(err){}
+}
+const VT_MS = 7000; let _vtT = null;
+function vtGo(i){
+  try{ const H = document.querySelector('#view .vt'); if(!H) return; const S = [...H.querySelectorAll('.vt-s')]; if(!S.length) return; i = ((i % S.length) + S.length) % S.length;
+    S.forEach((x, k)=>{ x.classList.toggle('on', k === i); if(k === i){ x.removeAttribute('inert'); x.removeAttribute('aria-hidden'); } else { x.setAttribute('inert', ''); x.setAttribute('aria-hidden', 'true'); } });
+    H.querySelectorAll('.vt-dot').forEach((d, k)=>d.classList.toggle('on', k === i)); H.dataset.i = i; vtFill(S[i]); }catch(err){}
+}
+function vtStart(){   // scorre da sola ogni 7 secondi; si ferma col mouse sopra, mentre la si usa, o se il dispositivo chiede meno animazioni
+  try{ clearInterval(_vtT); const H = document.querySelector('#view .vt'); if(!H) return; vtFill(H.querySelector('.vt-s.on'));
+    const cur = () => +H.dataset.i || 0;
+    H.querySelectorAll('.vt-dot').forEach(d=>{ d.onclick = () => vtGo(+d.dataset.i); });
+    let x0 = null; H.addEventListener('touchstart', ev=>{ x0 = ev.touches[0].clientX; }, { passive: true });
+    H.addEventListener('touchend', ev=>{ if(x0 == null) return; const dx = ev.changedTouches[0].clientX - x0; x0 = null; if(Math.abs(dx) > 45){ H.dataset.touched = '1'; vtGo(cur() + (dx < 0 ? 1 : -1)); } }, { passive: true });
+    if(H.querySelectorAll('.vt-s').length < 2) return;
+    let calm = false; try{ calm = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(err){}
+    if(calm) return;
+    _vtT = setInterval(()=>{ const h = document.querySelector('#view .vt'); if(h !== H){ clearInterval(_vtT); return; }
+      if(document.hidden || H.dataset.touched || H.matches(':hover') || H.contains(document.activeElement)) return; vtGo(cur() + 1); }, VT_MS);
+  }catch(err){}
+}
+/* ---------- File di copertine: frecce al passaggio del mouse e bordo che sfuma ---------- */
+function dressStrip(st){
+  if(st.dataset.dressed) return; st.dataset.dressed = '1';
+  const w = document.createElement('div'); w.className = 'sw at-start'; st.parentNode.insertBefore(w, st); w.appendChild(st);
+  const upd = () => { w.classList.toggle('at-start', st.scrollLeft < 8); w.classList.toggle('at-end', st.scrollLeft + st.clientWidth > st.scrollWidth - 8); };
+  [['prev', 'Scorri indietro', -1, '‹'], ['next', 'Scorri avanti', 1, '›']].forEach(([c, lab, dir, ch])=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'sw-b ' + c; b.tabIndex = -1; b.setAttribute('aria-label', lab); b.textContent = ch;
+    b.onclick = () => { try{ st.scrollBy({ left: dir * Math.max(200, st.clientWidth * 0.85), behavior: 'smooth' }); }catch(err){ st.scrollLeft += dir * 400; } }; w.appendChild(b); });
+  st.addEventListener('scroll', upd, { passive: true }); upd(); setTimeout(upd, 500);
+}
+function dressStrips(){ try{ document.querySelectorAll('#view .strip:not([data-dressed])').forEach(dressStrip); }catch(err){} }
+try{ if(typeof MutationObserver !== 'undefined') new MutationObserver(dressStrips).observe(document.getElementById('view'), { childList: true, subtree: true }); }catch(err){}
+
 function viewHome(){
   setNav(''); const dec = decades(), mx = Math.max(1, ...dec.map(x=>x.n));
   const scop = ['capolavori', 'grandi', 'acclamati', 'gemme', 'live', 'colonne', 'raccolte', 'ep'].map(k=>[k, LISTS[k][1]().length]).filter(x=>x[1] > 0);
-  V().innerHTML = `<div class="ruler">${dec.map(x=>`<a href="#decennio/${x.d}"><b>${decLabel(x.d)}</b><i style="height:${Math.round(6 + 34 * x.n / mx)}px"></i><small>${fmtN(x.n)}</small></a>`).join('')}</div>`
-    + `<div class="acts" style="margin:14px 0 2px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#adesso">🎧 Cosa ascolto adesso?</a><a class="btn" href="#perte">✨ Per te</a></div>`
+  V().innerHTML = vtHTML() + quickHTML()
+    + monthStrip()
     + (RATED ? strip('✦ Capolavori', masterpieces(), '#lista/capolavori') : '')
     + perTeStrip()
     + strip('📰 Acclamati dalla critica', ACCLAIM, '#lista/acclamati')
-    + monthStrip()
     + annivStrip()
     + strip('I più famosi', LISTS.famosi[1](), '#lista/famosi')
     + strip('✓ Nella tua discoteca', LISTS.discoteca[1](), '#lista/discoteca')
     + CLS.filter(c=>c.pin && c.items.length).map(c=>strip('🏆 ' + esc(c.name), c.items.map(id=>BY_ID.get(id)).filter(Boolean), '#classifica/' + c.id, 'Apri')).join('')
+    + `<h2 class="sec">Per decennio<span class="cnt">${fmtN(IDX.length)} dischi</span></h2><div class="ruler">${dec.map(x=>`<a href="#decennio/${x.d}"><b>${decLabel(x.d)}</b><i style="height:${Math.round(6 + 34 * x.n / mx)}px"></i><small>${fmtN(x.n)}</small></a>`).join('')}</div>`
     + (scop.length ? `<h2 class="sec">Scopri</h2><div class="genres">${scop.map(([k, n])=>`<a class="genre" href="#lista/${k}"><b>${esc(LISTS[k][0])}</b><i>${fmtN(n)}</i></a>`).join('')}</div>` : '')
     + `<h2 class="sec">Generi<a class="more" href="#generi">Tutti i sottogeneri</a></h2><div class="genres">${MACRO.map(([k, name])=>[k, name, IDX.filter(e=>e.m === k).length]).filter(x=>x[2]).map(([k, name, c])=>`<a class="genre" href="#famiglia/${k}"><b>${esc(name)}</b><i>${fmtN(c)}</i></a>`).join('')}</div>`
     + `<p class="note" style="margin-top:26px">${fmtN(IDX.length)} dischi da MusicBrainz${META.built ? ', indice del ' + esc(fmtD(META.built)) : ''}. <a class="lnk" href="../">Apri la tua Discoteca</a></p>`;
   if($('surprise')) $('surprise').onclick = surprise;
-  refreshMonth();
+  refreshMonth(); vtStart(); dressStrips();
 }
 function viewList(k, arg){
   let title, base, lead;
