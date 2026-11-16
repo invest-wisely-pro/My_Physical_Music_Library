@@ -8,11 +8,13 @@ Scarica l'archivio JSON ufficiale dei "release group" (gli album) di MusicBrainz
 HTML dell'app (di solito index.html).
 
 Formato di ogni riga (dentro il blocco compresso):
-  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi|voto|voti|data|wiki|lingue|premi
+  id (32 caratteri, senza trattini)|titolo|artista|anno|tipo|generi|voto|voti|data|wiki|lingue|premi|italia
   voto: media degli utenti di MusicBrainz da 0 a 100 (vuoto se nessuno ha votato); voti: quanti; data: prima uscita (AAAA-MM-GG).
   wiki: 1 se il disco ha una voce su Wikipedia o Wikidata (difficile da falsificare, a differenza dei voti).
   lingue: in quante Wikipedia del mondo il disco ha un articolo (difficilissimo da falsificare); premi: quanti ne ha vinti (P166).
-  Le ultime quattro colonne servono all'Atlante della Musica: l'app dei dischi legge solo le prime sei.
+  italia: 1 o piu se, secondo Wikidata, almeno un interprete del disco e italiano (per la sezione "Musica italiana" dell'Atlante).
+  I dischi di interpreti italiani entrano nell'indice anche se non sono tra i piu diffusi (fino a 8000 in piu, in fondo).
+  Le ultime cinque colonne servono all'Atlante della Musica: l'app dei dischi legge solo le prime sei.
   tipo: A = album, E = EP, piu L (live) C (compilation) S (colonna sonora) R (remix)
 
 Uso:
@@ -106,8 +108,10 @@ def score(rg):
         s += 4 if ty in ('wikidata', 'wikipedia') else 2 if any(k in ty for k in NOTABLE) else 1
     return s
 
-def build(src, top):
-    heap, n, kept, bad = [], 0, 0, 0
+ITA_EXTRA = 8000   # quanti dischi italiani al massimo si aggiungono oltre ai piu diffusi
+def build(src, top, keep=None):
+    heap, n, kept, bad, forced = [], 0, 0, 0, {}
+    keep = keep or {}
     for raw in lines_from(src):
         n += 1
         if n % 500000 == 0: log(f'  letti {n:,} album… (tenuti finora: {len(heap):,})')
@@ -131,18 +135,25 @@ def build(src, top):
                         str(round(float(rv) * 20)) if rv not in (None, '') and vc else '', str(vc) if vc else '', frd if len(frd) == 10 else '', '1' if wk else ''])
         if len(row) < 40: continue
         item = (sc, n, row)
+        if row[:32] in keep: forced[row[:32]] = item   # disco di un interprete italiano: entra comunque
         if len(heap) < top: heapq.heappush(heap, item)
         elif sc > heap[0][0]: heapq.heapreplace(heap, item)
         kept += 1
     log(f'Album letti: {n:,} · righe non leggibili: {bad:,} · album ed EP validi: {kept:,} · tenuti: {len(heap):,}')
     if heap: log(f'Punteggio minimo tenuto: {min(h[0] for h in heap)} · massimo: {max(h[0] for h in heap)}')
     rows = [r for _, _, r in sorted(heap, key=lambda x: (-x[0], x[1]))]   # dal piu diffuso
+    inside = set(r[:32] for r in rows)
+    extra = [r for _, _, r in sorted((v for k, v in forced.items() if k not in inside), key=lambda x: (-x[0], x[1]))][:ITA_EXTRA]
+    if keep: log(f'Dischi di interpreti italiani: {len(forced):,} validi, di cui {len(extra):,} aggiunti in fondo all\'indice')
+    rows += extra
     return '\n'.join(rows) + '\n', len(rows)
 
 WD_ENDPOINTS = ['https://qlever.cs.uni-freiburg.de/api/wikidata', 'https://query.wikidata.org/sparql']
 WD_Q = {
     'cl': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?mb (MAX(?sl) AS ?n) WHERE { ?a wdt:P436 ?mb ; wikibase:sitelinks ?sl . FILTER(?sl > 0) } GROUP BY ?mb',
     'aw': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?x) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P166 ?x . } GROUP BY ?mb',
+    # dischi con almeno un interprete italiano: cittadinanza italiana (persone) o paese d'origine Italia (gruppi)
+    'it': 'PREFIX wd: <http://www.wikidata.org/entity/>\nPREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?p) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P175 ?p . { ?p wdt:P27 wd:Q38 } UNION { ?p wdt:P495 wd:Q38 } } GROUP BY ?mb',
 }
 def wd_counts(key, local=None):
     """Da Wikidata: per ogni disco (codice MusicBrainz), in quante Wikipedia ha un articolo, o quanti premi ha vinto."""
@@ -170,9 +181,16 @@ def wd_counts(key, local=None):
         if len(mb) == 32 and n > 0: out[mb] = n
     return out
 
-def add_wikidata(text, local=None):
-    """Aggiunge due colonne: lingue di Wikipedia e premi. Se Wikidata non risponde, restano vuote."""
-    extra = {}
+def italian_ids(local=None):
+    """I dischi di interpreti italiani (codici MusicBrainz), chiesti a Wikidata prima di leggere l'archivio. Se non risponde: nessuno."""
+    try:
+        m = wd_counts('it', local); log(f'Wikidata, dischi di interpreti italiani: {len(m):,}'); return m
+    except Exception as e:
+        log(f'Wikidata, dischi italiani: non disponibile ({str(e)[:110]}); l\'indice resta valido, la sezione italiana arriva il mese prossimo'); return {}
+
+def add_wikidata(text, local=None, ita=None):
+    """Aggiunge tre colonne: lingue di Wikipedia, premi e interpreti italiani. Se Wikidata non risponde, restano vuote."""
+    extra = {'it': ita or {}}
     for key, label in (('cl', 'voci su Wikipedia'), ('aw', 'premi')):
         try:
             extra[key] = wd_counts(key, local); log(f'Wikidata, {label}: {len(extra[key]):,} dischi')
@@ -181,7 +199,7 @@ def add_wikidata(text, local=None):
     rows = []
     for l in text.split('\n'):
         if not l: continue
-        p = l.split('|'); rows.append('|'.join(p + [str(extra['cl'].get(p[0], '')), str(extra['aw'].get(p[0], ''))]))
+        p = l.split('|'); rows.append('|'.join(p + [str(extra['cl'].get(p[0], '')), str(extra['aw'].get(p[0], '')), str(extra['it'].get(p[0], ''))]))
     hit = sum(1 for r in rows if r.split('|')[10])
     log(f'Dischi dell\'indice con un articolo in almeno una Wikipedia: {hit:,}')
     return '\n'.join(rows) + '\n'
@@ -201,17 +219,18 @@ def main():
     if len(sys.argv) < 2: raise SystemExit(__doc__)
     html, top, minimum = sys.argv[1], int(arg('--top', 80000)), int(arg('--min', 20000))
     built = arg('--date') or datetime.date.today().isoformat()
+    ita = italian_ids(arg('--wdlocal'))
     if '--local' in sys.argv:
         src = arg('--local'); dump = os.path.basename(src)
-        text, n = build(src, top)
+        text, n = build(src, top, ita)
     else:
         log('Cerco l\'archivio MusicBrainz piu recente…')
         dump, resp = find_dump()
         size = resp.headers.get('Content-Length')
         log(f'Scarico e leggo i release group (archivio {dump}' + (f', {int(size) / 1048576:.0f} MB' if size else '') + ')…')
-        text, n = build(resp, top)
+        text, n = build(resp, top, ita)
     if n < minimum: raise SystemExit(f'Indice sospetto ({n} album): non lo inserisco')
-    text = add_wikidata(text, arg('--wdlocal'))
+    text = add_wikidata(text, arg('--wdlocal'), ita)
     embed(html, text, built, dump)
 
 if __name__ == '__main__': main()
