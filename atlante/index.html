@@ -207,7 +207,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -522,7 +522,7 @@ let FRESH = null, _freshP = null;
 function freshLive(){
   if(_freshP) return _freshP;
   _freshP = (async ()=>{
-    const c = await dget('fresh1'); if(c && Date.now() - c.at < 12 * 36e5) return c.l;
+    const c = await dget('fresh2'); if(c && Date.now() - c.at < 12 * 36e5) return c.l;
     if(navigator.onLine === false) return c ? c.l : null;
     try{
       const j = await jget('https://api.listenbrainz.org/1/explore/fresh-releases/?days=40&past=true&future=true&sort=release_date', 20000);
@@ -531,10 +531,10 @@ function freshLive(){
       const seen = new Set(), l = [];
       for(const r of raw){ if(!r || !r.release_group_mbid || !r.release_name || !r.artist_credit_name || !/^\d{4}-\d\d-\d\d$/.test(r.release_date || '')) continue;
         const pt = String(r.release_group_primary_type || '').toLowerCase(), st = String(r.release_group_secondary_type || '').toLowerCase();
-        if(pt !== 'album' && pt !== 'ep') continue; if(st && !/^(live|soundtrack)$/.test(st)) continue;
+        if(pt !== 'album' && pt !== 'ep') continue; if(st && !/^(live|soundtrack|compilation)$/.test(st)) continue;
         const id = String(r.release_group_mbid).replace(/-/g, '').toLowerCase(); if(id.length !== 32 || seen.has(id)) continue; seen.add(id);
-        l.push({ id, t: String(r.release_name), a: String(r.artist_credit_name), d: r.release_date, ty: (pt === 'ep' ? 'E' : 'A') + (st === 'live' ? 'L' : st === 'soundtrack' ? 'S' : '') }); }
-      await dset('fresh1', { at: Date.now(), l }); return l;
+        l.push({ id, t: String(r.release_name), a: String(r.artist_credit_name), d: r.release_date, ty: (pt === 'ep' ? 'E' : 'A') + (st === 'live' ? 'L' : st === 'soundtrack' ? 'S' : st === 'compilation' ? 'C' : '') }); }
+      await dset('fresh2', { at: Date.now(), l }); return l;
     }catch(err){ return c ? c.l : null; }
   })();
   return _freshP;
@@ -544,14 +544,23 @@ function asEntry(x){   // un'uscita che l'indice non conosce ancora: una scheda 
   const e = { id: x.id, t: x.t, a: x.a, y: parseInt(x.d, 10) || YEAR, ty: x.ty || 'A', g: [], rv: 0, vc: 0, d: x.d, w: true, sl: 0, cl: 0, aw: 0, r: 999999, m: '', tier: 0, br: 0, fresh: true };
   BY_ID.set(e.id, e); return e;
 }
+/* Solo dischi davvero nuovi: fuori i concerti e i nastri d'archivio (spesso arrivano senza l'etichetta "dal vivo": si riconoscono dal titolo)
+   e le ristampe (stesso titolo di un disco dell'artista già nell'atlante). Le raccolte restano solo se nuove e di un artista tra i più grandi. */
+const ARCH = /\b(19|20)\d\d[-.\/]\d{1,2}[-.\/]\d{1,2}\b|\b\d{1,2}[-.\/]\d{1,2}[-.\/](19|20)\d\d\b|\blive\b|\bin concert\b|\bconcert\b|\bunplugged\b|\btapes?\b|\bbootlegs?\b|\bdemos?\b|\bsessions?\b|\brehearsals?\b|\bbroadcasts?\b|\bsoundboard\b|\bbbc\b|\barchives?\b|\bouttakes\b|\bdal vivo\b|\ben vivo\b|\bremaster(ed)?\b|\bdeluxe\b|\banniversary\b|\bexpanded\b|\breissue\b|\bedition\b|\bre-?recorded\b/i;
+const bareTitle = t => norm(String(t || '').replace(/\(.*?\)|\[.*?\]/g, ' ')).replace(/\b(ep|lp|the|deluxe|edition|remaster(ed)?)\b/g, ' ').replace(/\s+/g, ' ').trim();
+function isReissue(e){ try{ const b = bareTitle(e.t); if(!b) return false; for(const k of nameParts(e.a)){ const A = ARTISTS.get(k); if(A && A.list.some(x=>x.id !== e.id && x.y && x.y < YEAR - 1 && bareTitle(x.t) === b)) return true; } }catch(err){} return false; }
+let _TOP = null;
+function topFame(){ if(_TOP && _TOP.n === IDX.length) return _TOP.f; const l = [...ARTISTS.values()].filter(A=>!A.sus && !VARIOUS.test(A.name)).map(A=>A.fame).sort((a, b)=>b - a); _TOP = { n: IDX.length, f: l[Math.min(249, l.length - 1)] || 0 }; return _TOP.f; }   // i 250 artisti più grandi
+const reallyNew = e => !e.ty.includes('L') && !e.ty.includes('R') && !ARCH.test(e.t) && !isReissue(e) && (!e.ty.includes('C') || artistWeight(e.a) >= topFame());
 function monthData(){
   const from = dayStr(-35), to = TODAY, soon = dayStr(35), map = new Map();
-  const add = e => { if(!e || map.has(e.id) || !e.d || e.sus || VARIOUS.test(e.a) || e.ty.includes('C') || e.ty.includes('R')) return; if(!known(e)) return; map.set(e.id, e); };
+  const add = e => { if(!e || map.has(e.id) || !e.d || e.sus || VARIOUS.test(e.a) || !reallyNew(e)) return; if(!known(e)) return; map.set(e.id, e); };
   for(const e of IDX) if(e.y >= YEAR - 1 && e.d >= from && e.d <= soon) add(e);
   (FRESH || []).forEach(x=>{ if(x.d >= from && x.d <= soon) add(asEntry(x)); });
   const w = e => artistWeight(e.a) + 0.004 * Math.min(e.sl || 0, 30), one = new Set(), perA = e => { const k = norm(e.a); if(one.has(k)) return false; one.add(k); return true; };
   const all = [...map.values()];
-  const out = all.filter(e=>e.d <= to).sort((a, b)=>w(b) - w(a) || b.d.localeCompare(a.d)).filter(perA);
+  const isC = e => e.ty.includes('C') ? 1 : 0;   // dello stesso artista, prima il disco nuovo e poi la raccolta
+  const out = all.filter(e=>e.d <= to).sort((a, b)=>w(b) - w(a) || isC(a) - isC(b) || b.d.localeCompare(a.d)).filter(perA);
   const next = all.filter(e=>e.d > to).sort((a, b)=>a.d.localeCompare(b.d) || w(b) - w(a)).filter(perA);
   return { out, next };
 }
@@ -568,7 +577,7 @@ function refreshMonth(){
 function viewUscite(){
   setNav(''); const draw = () => { let M = { out: [], next: [] }; try{ M = monthData(); }catch(err){}
     const g = l => `<div class="grid">${l.map(e=>card(e).replace('</small></a>', `</small><small style="color:var(--amber2); font-weight:650">${esc(fmtD(e.d))}</small></a>`)).join('')}</div>`;
-    V().innerHTML = `<h1 class="pg">🆕 Uscite del mese</h1><p class="lead">I dischi usciti nelle ultime cinque settimane, dagli artisti più importanti. Solo artisti già presenti nell'atlante, con almeno due dischi negli anni passati.</p>`
+    V().innerHTML = `<h1 class="pg">🆕 Uscite del mese</h1><p class="lead">I dischi nuovi usciti nelle ultime cinque settimane, dagli artisti più importanti: niente concerti d'archivio né ristampe; le raccolte solo se dei più grandi.</p>`
       + (M.out.length ? g(M.out) : '<p class="note">Nessuna uscita da segnalare in queste settimane.</p>')
       + (M.next.length ? `<h2 class="sec">📅 In arrivo<span class="cnt">${M.next.length}</span></h2>${g(M.next)}` : '')
       + `<p class="note" style="margin-top:22px">${FRESH ? 'Aggiornate ogni giorno da MusicBrainz e ListenBrainz.' : 'Dall\'indice del mese; con la rete si aggiornano ogni giorno.'} <a class="lnk" href="#lista/novita">Tutte le novità dell'anno</a></p>`; };
