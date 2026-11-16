@@ -152,8 +152,9 @@ WD_ENDPOINTS = ['https://qlever.cs.uni-freiburg.de/api/wikidata', 'https://query
 WD_Q = {
     'cl': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?mb (MAX(?sl) AS ?n) WHERE { ?a wdt:P436 ?mb ; wikibase:sitelinks ?sl . FILTER(?sl > 0) } GROUP BY ?mb',
     'aw': 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?x) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P166 ?x . } GROUP BY ?mb',
-    # dischi con almeno un interprete italiano: cittadinanza italiana (persone) o paese d'origine Italia (gruppi)
-    'it': 'PREFIX wd: <http://www.wikidata.org/entity/>\nPREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?p) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P175 ?p . { ?p wdt:P27 wd:Q38 } UNION { ?p wdt:P495 wd:Q38 } } GROUP BY ?mb',
+    # dischi con almeno un interprete italiano: persone con la sola cittadinanza italiana (o del Regno d'Italia), cosi restano fuori
+    # gli stranieri con doppio passaporto come Michael Buble; gruppi con paese d'origine Italia
+    'it': 'PREFIX wd: <http://www.wikidata.org/entity/>\nPREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT ?mb (COUNT(DISTINCT ?p) AS ?n) WHERE { ?a wdt:P436 ?mb ; wdt:P175 ?p . { ?p wdt:P27 wd:Q38 . FILTER NOT EXISTS { ?p wdt:P27 ?c2 . FILTER(?c2 != wd:Q38 && ?c2 != wd:Q172579) } } UNION { ?p wdt:P495 wd:Q38 } } GROUP BY ?mb',
 }
 def wd_counts(key, local=None):
     """Da Wikidata: per ogni disco (codice MusicBrainz), in quante Wikipedia ha un articolo, o quanti premi ha vinto."""
