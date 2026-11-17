@@ -224,7 +224,7 @@ select{height:38px;} textarea{width:100%; min-height:140px;}
 /* =====================================================================
    Atlante della Musica — legge l'indice dell'app dei dischi (../index.html)
    ===================================================================== */
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 const $ = id => document.getElementById(id), V = () => $('view');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -1243,8 +1243,17 @@ function viewArtists(arg){
     $('al').innerHTML = l.slice(0, n).map(portrait).join('') || (f ? '<p class="note">Nessun artista con questo nome.</p>' : ''); $('am').classList.toggle('hidden', l.length <= n); };
   $('af').oninput = () => { n = 60; draw(); }; $('am').onclick = () => { n += 60; draw(); }; draw();
 }
-function artStrip(){   // in home: sedici ritratti al giorno tra i cento artisti più grandi
-  try{ const l = artData().all.slice(0, 100); if(l.length < 12) return ''; const pick = vtDay(l.map(A=>({ id: A.k, A })), 16).map(x=>x.A).sort((a, b)=>a._pos - b._pos);
+function artMix(){   // sedici artisti al giorno, ben mescolati: generi diversi (quote fisse), vecchi e nuovi alternati, nessun italiano (hanno la loro fila)
+  const all = artData().all.filter(A=>!isItaArt(A)), main = A => { let k = '', v = 0; for(const [f, x] of Object.entries(A.ff || {})) if(x > v){ v = x; k = f; } return k; };
+  const Q = [['rock', 3], ['pop', 4], ['hiphop', 2], ['soul', 2], ['metal', 1], ['elettronica', 1], ['jazz', 1], ['folk', 1], [['punk', 'blues', 'country', 'reggae'], 1], [['classica'], 0]];
+  const out = [], seen = new Set();
+  Q.forEach(([fs, n], qi)=>{ if(!n) return; fs = [].concat(fs); const pool = all.filter(A=>A._pos < 300 && fs.includes(main(A))).slice(0, 14 * fs.length);
+    const old = vtDay(pool.filter(A=>A._deb && A._deb < 1990).map(A=>({ id: A.k, A })), n).map(x=>x.A), nw = vtDay(pool.filter(A=>A._deb >= 1990).map(A=>({ id: A.k, A })), n).map(x=>x.A);
+    for(let i = 0, o = 0, w = 0; out.length < 99 && i < n; i++){ const A = ((i + qi) % 2 ? nw[w++] || old[o++] : old[o++] || nw[w++]); if(A && !seen.has(A.k)){ seen.add(A.k); out.push(A); } } });
+  return vtDay(out.map(A=>({ id: A.k, A })), 16).map(x=>x.A); }
+function isItaArt(A){ try{ return itaData().arts.has(A.k); }catch(err){ return false; } }
+function artStrip(){   // in home: sedici ritratti al giorno, generi ed epoche diversi
+  try{ const pick = artMix(); if(pick.length < 12) return '';
     return `<h2 class="sec"><span>Artisti in primo piano</span><a class="more" href="#artisti">Tutti gli artisti</a></h2><div class="strip round">${pick.map(portrait).join('')}</div>`;
   }catch(err){ return ''; }
 }
