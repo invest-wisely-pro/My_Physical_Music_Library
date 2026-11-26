@@ -165,13 +165,13 @@ def wd_counts(key, local=None):
     else:
         j, last = None, ''
         for url in WD_ENDPOINTS:
-            for attempt in range(2):
+            for attempt in range(3 if 'qlever' in url else 2):
                 try:
                     req = urllib.request.Request(url + '?' + urllib.parse.urlencode({'query': WD_Q[key]}), headers=dict(UA, Accept='application/sparql-results+json'))
                     with urllib.request.urlopen(req, timeout=240) as r: j = json.loads(r.read().decode('utf-8'))
                     break
                 except Exception as e:
-                    last = f'{url.split("/")[2]}: {str(e)[:100]}'; time.sleep(8)
+                    last = f'{url.split("/")[2]}: {str(e)[:100]}'; time.sleep(20 * (attempt + 1))
             if j: break
         if not j: raise RuntimeError(last or 'nessuna risposta')
     out = {}
@@ -189,20 +189,46 @@ def italian_ids(local=None):
     except Exception as e:
         log(f'Wikidata, dischi italiani: non disponibile ({str(e)[:110]}); l\'indice resta valido, la sezione italiana arriva il mese prossimo'); return {}
 
-def add_wikidata(text, local=None, ita=None):
-    """Aggiunge tre colonne: lingue di Wikipedia, premi e interpreti italiani. Se Wikidata non risponde, restano vuote."""
+def previous_columns(html_path):
+    """Dall'indice gia presente in index.html: lingue di Wikipedia, premi e interpreti italiani di ogni disco.
+    Servono quando Wikidata non risponde: si tengono quelli dell'ultima volta invece di lasciare le colonne vuote."""
+    prev = {'cl': {}, 'aw': {}, 'it': {}}
+    try:
+        html = open(html_path, encoding='utf-8').read()
+        m = re.search(r'<script type="text/plain" id="mbIndexData"[^>]*>([^<]*)</script>', html)
+        if not m or not m.group(1).strip(): return prev
+        for l in gzip.decompress(base64.b64decode(m.group(1).strip())).decode('utf-8').split('\n'):
+            p = l.split('|')
+            if len(p) < 13: continue
+            for k, i in (('cl', 10), ('aw', 11), ('it', 12)):
+                try:
+                    if p[i]: prev[k][p[0]] = int(p[i])
+                except ValueError: pass
+    except Exception as e:
+        log(f'Indice precedente non leggibile ({str(e)[:80]}): niente valori di riserva')
+    return prev
+
+def add_wikidata(text, local=None, ita=None, prev=None):
+    """Aggiunge tre colonne: lingue di Wikipedia, premi e interpreti italiani. Se Wikidata non risponde (o risponde
+    con molti meno dischi del solito), si tengono i valori dell'indice precedente."""
+    prev = prev or {'cl': {}, 'aw': {}, 'it': {}}
     extra = {'it': ita or {}}
     for key, label in (('cl', 'voci su Wikipedia'), ('aw', 'premi')):
         try:
             extra[key] = wd_counts(key, local); log(f'Wikidata, {label}: {len(extra[key]):,} dischi')
         except Exception as e:
-            extra[key] = {}; log(f'Wikidata, {label}: non disponibile ({str(e)[:110]}); l\'indice resta valido, si riprova il mese prossimo')
+            extra[key] = {}; log(f'Wikidata, {label}: non disponibile ({str(e)[:110]})')
+        if len(extra[key]) < len(prev[key]) // 2:
+            extra[key] = prev[key]; log(f'  uso i valori dell\'indice precedente ({len(prev[key]):,} dischi)')
+    if len(extra['it']) < len(prev['it']) // 2:
+        extra['it'] = prev['it']; log(f'Interpreti italiani: uso i valori dell\'indice precedente ({len(prev["it"]):,} dischi)')
     rows = []
     for l in text.split('\n'):
         if not l: continue
         p = l.split('|'); rows.append('|'.join(p + [str(extra['cl'].get(p[0], '')), str(extra['aw'].get(p[0], '')), str(extra['it'].get(p[0], ''))]))
     hit = sum(1 for r in rows if r.split('|')[10])
     log(f'Dischi dell\'indice con un articolo in almeno una Wikipedia: {hit:,}')
+    if hit < 1000: raise SystemExit('Mancano quasi tutti gli articoli di Wikipedia: non inserisco l\'indice, resta quello di prima')
     return '\n'.join(rows) + '\n'
 
 def embed(html_path, text, built, dump):
@@ -220,7 +246,9 @@ def main():
     if len(sys.argv) < 2: raise SystemExit(__doc__)
     html, top, minimum = sys.argv[1], int(arg('--top', 80000)), int(arg('--min', 20000))
     built = arg('--date') or datetime.date.today().isoformat()
+    prev = previous_columns(html)
     ita = italian_ids(arg('--wdlocal'))
+    if len(ita) < len(prev['it']) // 2: ita = prev['it']   # per tenere comunque i dischi italiani nell'indice
     if '--local' in sys.argv:
         src = arg('--local'); dump = os.path.basename(src)
         text, n = build(src, top, ita)
@@ -231,7 +259,7 @@ def main():
         log(f'Scarico e leggo i release group (archivio {dump}' + (f', {int(size) / 1048576:.0f} MB' if size else '') + ')…')
         text, n = build(resp, top, ita)
     if n < minimum: raise SystemExit(f'Indice sospetto ({n} album): non lo inserisco')
-    text = add_wikidata(text, arg('--wdlocal'), ita)
+    text = add_wikidata(text, arg('--wdlocal'), ita, prev)
     embed(html, text, built, dump)
 
 if __name__ == '__main__': main()
